@@ -18,6 +18,7 @@ export default function Ship() {
   const gameState = useGameStore((state) => state.gameState);
   const collisionTriggered = useGameStore((state) => state.collisionTriggered);
   const shieldActive = useGameStore((state) => state.shieldActive);
+  const shieldStrength = useGameStore((state) => state.shieldStrength);
   const equippedSkin = useGameStore((state) => state.upgrades.equippedSkin);
 
   const lastPointerX = useRef(0);
@@ -54,8 +55,9 @@ export default function Ship() {
     const currentPointerX = state.pointer.x;
     if (gameState === 'PLAYING' && !collisionTriggered) {
       const pointerDelta = Math.abs(currentPointerX - lastPointerX.current);
-      // Filter out micro-movements to avoid jitter, but register real moves
-      if (pointerDelta > 0.003) {
+      // Require a larger, deliberate movement (0.06) to switch from KEYBOARD to MOUSE mode
+      const threshold = controlMode === 'KEYBOARD' ? 0.06 : 0.003;
+      if (pointerDelta > threshold) {
         // Map pointer [-1, 1] to track boundaries [-3.0, 3.0] (negated due to camera direction)
         setMouseX(-currentPointerX * 3.2);
         lastPointerX.current = currentPointerX;
@@ -1035,15 +1037,30 @@ export default function Ship() {
 
       {/* Hexagonal cyberpunk energy shield bubble */}
       {shieldActive && (
-        <mesh position={[0, 0, 0]}>
-          <dodecahedronGeometry args={[0.85, 1]} />
-          <meshBasicMaterial 
-            color="#00f3ff" 
-            wireframe={true} 
-            transparent={true} 
-            opacity={0.3} 
-          />
-        </mesh>
+        <>
+          {/* Inner Cyan Layer */}
+          <mesh position={[0, 0, 0]}>
+            <dodecahedronGeometry args={[0.85, 1]} />
+            <meshBasicMaterial 
+              color="#00f3ff" 
+              wireframe={true} 
+              transparent={true} 
+              opacity={0.3} 
+            />
+          </mesh>
+          {/* Outer Pink/Magenta Layer for Double Shield */}
+          {shieldStrength === 2 && (
+            <mesh position={[0, 0, 0]}>
+              <dodecahedronGeometry args={[0.95, 1]} />
+              <meshBasicMaterial 
+                color="#ff007f" 
+                wireframe={true} 
+                transparent={true} 
+                opacity={0.2} 
+              />
+            </mesh>
+          )}
+        </>
       )}
     </group>
   );

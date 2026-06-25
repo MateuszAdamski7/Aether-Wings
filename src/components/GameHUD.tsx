@@ -21,9 +21,12 @@ export default function GameHUD() {
 
   // Upgrades & Power-Up subscriptions
   const shieldActive = useGameStore((state) => state.shieldActive);
+  const shieldStrength = useGameStore((state) => state.shieldStrength);
+  const shieldRegenTimer = useGameStore((state) => state.shieldRegenTimer);
   const magnetActiveTime = useGameStore((state) => state.magnetActiveTime);
   const slowMoActiveTime = useGameStore((state) => state.slowMoActiveTime);
   const currentSector = useGameStore((state) => state.currentSector);
+  const upgrades = useGameStore((state) => state.upgrades);
   
   // Mission notifications
   const recentCompletedMission = useGameStore((state) => state.recentCompletedMission);
@@ -181,7 +184,7 @@ export default function GameHUD() {
         {/* Bottom-Left: Speedometer & Active Power-up timer bars */}
         <div className="flex flex-col gap-2.5 w-full max-w-[220px] pointer-events-auto">
           {/* Active Power-Ups overlay */}
-          {(magnetActiveTime > 0 || slowMoActiveTime > 0) && (
+          {(magnetActiveTime > 0 || slowMoActiveTime > 0 || (upgrades.defense_shield_3 && !shieldActive && shieldRegenTimer > 0)) && (
             <div className="flex flex-col gap-1.5 w-full">
               {magnetActiveTime > 0 && (
                 <div className="glass-panel px-3 py-1.5 border-glow-magenta bg-pink-950/20 text-xs flex flex-col gap-1">
@@ -211,6 +214,20 @@ export default function GameHUD() {
                   </div>
                 </div>
               )}
+              {upgrades.defense_shield_3 && !shieldActive && shieldRegenTimer > 0 && (
+                <div className="glass-panel px-3 py-1.5 border-glow-cyan bg-cyan-950/20 text-xs flex flex-col gap-1">
+                  <div className="flex justify-between items-center text-[8px] uppercase font-bold text-[#00f3ff] display-font">
+                    <span>Shield Recharging</span>
+                    <span>{shieldRegenTimer.toFixed(1)}s</span>
+                  </div>
+                  <div className="w-full h-1 bg-black/40 rounded-full overflow-hidden border border-white/5">
+                    <div 
+                      className="h-full bg-[#00f3ff] shadow-[0_0_4px_#00f3ff] animate-pulse" 
+                      style={{ width: `${((40.0 - shieldRegenTimer) / 40.0) * 100}%` }}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -220,8 +237,11 @@ export default function GameHUD() {
               <div className="flex items-center gap-1.5">
                 <span className="text-[10px] uppercase tracking-widest text-gray-400 display-font">Velocity</span>
                 {shieldActive && (
-                  <span className="w-3.5 h-3.5 rounded-full bg-[#00f3ff]/10 border border-[#00f3ff]/30 flex items-center justify-center animate-pulse" title="Deflector Shield Active">
+                  <span className="px-1.5 py-0.5 rounded bg-[#00f3ff]/10 border border-[#00f3ff]/30 flex items-center gap-1 animate-pulse" title={`Deflector Shield Active: ${shieldStrength} charge(s)`}>
                     <Shield size={9} className="text-[#00f3ff]" />
+                    {shieldStrength > 1 && (
+                      <span className="text-[8px] font-black text-[#00f3ff] display-font leading-none">x{shieldStrength}</span>
+                    )}
                   </span>
                 )}
               </div>

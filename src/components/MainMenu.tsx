@@ -1,23 +1,320 @@
+import { useState } from 'react';
 import { useGameStore } from '../store/useGameStore';
 import { audioManager } from '../utils/audio';
-import { Volume2, VolumeX, Keyboard, MousePointerClick, Zap, Award, Flame } from 'lucide-react';
+import { 
+  Volume2, 
+  VolumeX, 
+  Keyboard, 
+  MousePointerClick, 
+  Award, 
+  Rocket, 
+  Wrench, 
+  Palette,
+  Shield, 
+  ShieldAlert, 
+  Zap, 
+  Magnet, 
+  Coins, 
+  Sparkles, 
+  Gauge, 
+  Hourglass, 
+  Layers,
+  Lock
+} from 'lucide-react';
 
 const SKINS = [
-  { id: 'pink', name: 'Laser Pink', color: '#ff0055', cost: 0, description: 'Standard engine flame trim' },
-  { id: 'cyan', name: 'Cyan Flare', color: '#00f3ff', cost: 40, description: 'Neon cyan engine flame trim' },
-  { id: 'yellow', name: 'Solar Yellow', color: '#ffe600', cost: 40, description: 'Solar yellow engine flame trim' },
-  { id: 'green', name: 'Acid Green', color: '#39ff14', cost: 40, description: 'Acid green engine flame trim' },
-  { id: 'purple', name: 'Nebula Violet', color: '#9d00ff', cost: 40, description: 'Nebula violet engine flame trim' },
-  { id: 'vortex', name: 'Vortex Singularity', color: '#00f3ff', cost: 150, description: 'Passive: 2x Crystals value & 2x Hyperboost charge' },
-  { id: 'quantum', name: 'Quantum Vanguard', color: '#00ffff', cost: 150, description: 'Passive: Free start shield & auto-regen at 1500m' },
-  { id: 'temporal', name: 'Temporal Warp Wing', color: '#ffe600', cost: 150, description: 'Passive: 0.45x Slow-Mo speed & 8s powerup clock' }
+  { id: 'pink', name: 'Laser Pink', color: '#ff0055', cost: 0, description: '' },
+  { id: 'cyan', name: 'Cyan Flare', color: '#00f3ff', cost: 40, description: '' },
+  { id: 'yellow', name: 'Solar Yellow', color: '#ffe600', cost: 40, description: '' },
+  { id: 'green', name: 'Acid Green', color: '#39ff14', cost: 40, description: '' },
+  { id: 'purple', name: 'Nebula Violet', color: '#9d00ff', cost: 40, description: '' },
+  { id: 'vortex', name: 'Vortex Singularity', color: '#00f3ff', cost: 150, description: 'Passive: 2x Crystals & Boost charge' },
+  { id: 'quantum', name: 'Quantum Vanguard', color: '#00ffff', cost: 150, description: 'Passive: Start shield & auto-regen' },
+  { id: 'temporal', name: 'Temporal Warp Wing', color: '#ffe600', cost: 150, description: 'Passive: 0.45x Slow-Mo & 8s powerups' }
 ];
 
-const MAGNET_COSTS = [30, 50, 80];
+function ShipSvgIcon({ id, color }: { id: string; color: string }) {
+  if (id === 'pink') {
+    return (
+      <svg viewBox="0 0 100 100" width="100%" height="100%" stroke={color} fill="none" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ filter: `drop-shadow(0 0 3px ${color}80)` }}>
+        <path d="M50,15 L65,60 L50,48 L35,60 Z" fill={`${color}20`} />
+        <path d="M35,42 L10,65 L35,58" />
+        <path d="M65,42 L90,65 L65,58" />
+        <ellipse cx="50" cy="38" rx="3.5" ry="9" fill={color} />
+      </svg>
+    );
+  }
+  if (id === 'cyan') {
+    return (
+      <svg viewBox="0 0 100 100" width="100%" height="100%" stroke={color} fill="none" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ filter: `drop-shadow(0 0 3px ${color}80)` }}>
+        <path d="M42,35 L42,10 L47,24 L50,24 L53,24 L58,10 L58,35" />
+        <path d="M42,35 L50,55 L58,35 Z" fill={`${color}20`} />
+        <path d="M42,42 C25,40 15,55 15,70 C25,65 42,54 42,54" />
+        <path d="M58,42 C75,40 85,55 85,70 C75,65 58,54 58,54" />
+        <ellipse cx="50" cy="38" rx="4" ry="10" fill={color} />
+      </svg>
+    );
+  }
+  if (id === 'yellow') {
+    return (
+      <svg viewBox="0 0 100 100" width="100%" height="100%" stroke={color} fill="none" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ filter: `drop-shadow(0 0 3px ${color}80)` }}>
+        <path d="M38,25 L50,15 L62,25 L62,55 L50,65 L38,55 Z" fill={`${color}20`} />
+        <path d="M38,30 L8,30 L8,50 L38,50 M18,30 L18,50 M28,30 L28,50" />
+        <path d="M62,30 L92,30 L92,50 M82,30 L82,50 M72,30 L72,50" />
+        <polygon points="45,30 55,30 55,42 45,42" fill={color} />
+      </svg>
+    );
+  }
+  if (id === 'green') {
+    return (
+      <svg viewBox="0 0 100 100" width="100%" height="100%" stroke={color} fill="none" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ filter: `drop-shadow(0 0 3px ${color}80)` }}>
+        <path d="M50,12 C40,20 37,40 37,55 C43,58 50,60 50,60 C50,60 57,58 63,55 C63,40 60,20 50,12 Z" fill={`${color}15`} />
+        <path d="M37,45 C24,48 8,60 10,72 C16,65 29,58 37,55" />
+        <path d="M63,45 C76,48 92,60 90,72 C84,65 71,58 63,55" />
+        <circle cx="44" cy="28" r="2.5" fill={color} stroke="none" />
+        <circle cx="56" cy="28" r="2.5" fill={color} stroke="none" />
+        <path d="M50,22 C48,26 50,38 50,42" strokeWidth="1.5" />
+      </svg>
+    );
+  }
+  if (id === 'purple') {
+    return (
+      <svg viewBox="0 0 100 100" width="100%" height="100%" stroke={color} fill="none" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ filter: `drop-shadow(0 0 3px ${color}80)` }}>
+        <path d="M50,15 L64,45 L50,60 L36,45 Z" fill={`${color}20`} />
+        <path d="M36,40 L6,55 L36,50" />
+        <path d="M64,40 L94,55 L64,50" />
+        <circle cx="18" cy="50" r="6.5" strokeWidth="1.5" />
+        <circle cx="82" cy="50" r="6.5" strokeWidth="1.5" />
+        <path d="M46,30 L54,30 L56,40 L44,40 Z" fill={color} />
+      </svg>
+    );
+  }
+  if (id === 'vortex') {
+    return (
+      <svg viewBox="0 0 100 100" width="100%" height="100%" stroke={color} fill="none" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ filter: `drop-shadow(0 0 3px ${color}80)` }}>
+        <path d="M50,8 L53,46 L47,46 Z" fill={color} />
+        <circle cx="50" cy="50" r="11" fill={`${color}15`} />
+        <polygon points="50,41 58,45 58,55 50,59 42,55 42,45" strokeWidth="1.5" />
+        <path d="M33,33 C12,43 12,57 33,67" />
+        <path d="M67,33 C88,43 88,57 67,67" />
+      </svg>
+    );
+  }
+  if (id === 'quantum') {
+    return (
+      <svg viewBox="0 0 100 100" width="100%" height="100%" stroke={color} fill="none" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ filter: `drop-shadow(0 0 3px ${color}80)` }}>
+        <path d="M35,25 L50,17 L65,25 L65,65 L35,65 Z" fill={`${color}20`} />
+        <path d="M35,35 L10,22 L10,48 L35,52" />
+        <path d="M64,35 L88,22 L88,48 L64,52" />
+        <path d="M40,31 L60,31" stroke="#ff0000" strokeWidth="1.8" />
+      </svg>
+    );
+  }
+  if (id === 'temporal') {
+    return (
+      <svg viewBox="0 0 100 100" width="100%" height="100%" stroke={color} fill="none" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ filter: `drop-shadow(0 0 3px ${color}80)` }}>
+        <path d="M45,30 L45,12 L49,24 M55,30 L55,12 L51,24" />
+        <path d="M41,28 L50,22 L59,28 L63,55 L50,62 L37,55 Z" fill={`${color}20`} />
+        <path d="M37,42 L10,50 L37,52" />
+        <path d="M63,42 L90,50 L63,52" />
+        <circle cx="10" cy="50" r="7" strokeWidth="1.5" />
+        <line x1="10" y1="43" x2="10" y2="57" strokeWidth="1" />
+        <line x1="3" y1="50" x2="17" y2="50" strokeWidth="1" />
+        <circle cx="90" cy="50" r="7" strokeWidth="1.5" />
+        <line x1="90" y1="43" x2="90" y2="57" strokeWidth="1" />
+        <line x1="83" y1="50" x2="97" y2="50" strokeWidth="1" />
+        <circle cx="50" cy="38" r="4.5" fill={color} />
+      </svg>
+    );
+  }
+  return null;
+}
+
+const UPGRADE_NODES = [
+  // Branch 1: Defense
+  {
+    id: 'defense_shield_1',
+    name: 'Shield Deflector',
+    description: 'Deploys an energy barrier that absorbs one collision. Starts charged on every run.',
+    cost: 25,
+    branch: 'DEFENSE',
+    tier: 1,
+    prerequisite: null,
+    icon: Shield,
+    effectLabel: 'Shield capacity: 1 hit'
+  },
+  {
+    id: 'defense_shield_2',
+    name: 'Shield Fortification',
+    description: 'Increases deflector capacity. The shield can absorb up to 2 collisions before shattering.',
+    cost: 55,
+    branch: 'DEFENSE',
+    tier: 2,
+    prerequisite: 'defense_shield_1',
+    icon: Layers,
+    effectLabel: 'Shield capacity: 2 hits'
+  },
+  {
+    id: 'defense_shield_3',
+    name: 'Emergency Nano-Regen',
+    description: 'When the shield is fully depleted, it will automatically regenerate back to 1 charge after 40 seconds of clean flight.',
+    cost: 95,
+    branch: 'DEFENSE',
+    tier: 3,
+    prerequisite: 'defense_shield_2',
+    icon: ShieldAlert,
+    effectLabel: 'Auto-regenerates shield (40s CD)'
+  },
+  // Branch 2: Harvesting
+  {
+    id: 'harvest_magnet_1',
+    name: 'Crystal Magnet',
+    description: 'Creates a magnetic field pulling road crystals towards your ship (Radius: 1.5m).',
+    cost: 20,
+    branch: 'HARVESTING',
+    tier: 1,
+    prerequisite: null,
+    icon: Magnet,
+    effectLabel: 'Magnet Range: 1.5m'
+  },
+  {
+    id: 'harvest_magnet_2',
+    name: 'Magnet Amplification',
+    description: 'Enhances magnetic pull range to 3.0m and increases the duration of picked-up Magnet power-ups by 3 seconds.',
+    cost: 50,
+    branch: 'HARVESTING',
+    tier: 2,
+    prerequisite: 'harvest_magnet_1',
+    icon: Sparkles,
+    effectLabel: 'Magnet Range: 3.0m / Power-up +3s'
+  },
+  {
+    id: 'harvest_magnet_3',
+    name: 'Singularity Attractor',
+    description: 'Unlocks ultimate magnet range (15.0m), drawing all road crystals from all lanes instantly.',
+    cost: 90,
+    branch: 'HARVESTING',
+    tier: 3,
+    prerequisite: 'harvest_magnet_2',
+    icon: Coins,
+    effectLabel: 'Draws crystals from all lanes'
+  },
+  // Branch 3: Performance
+  {
+    id: 'engine_boost_1',
+    name: 'Boost Overcharger',
+    description: 'Upgrades the Hyperboost duration. Hyperboost lasts 1 second longer (6 seconds total).',
+    cost: 30,
+    branch: 'ENGINE',
+    tier: 1,
+    prerequisite: null,
+    icon: Gauge,
+    effectLabel: 'Hyperboost Duration: 6.0s'
+  },
+  {
+    id: 'engine_boost_2',
+    name: 'Fuel Recovery Matrix',
+    description: 'Optimizes fuel converter. Crystals collected during standard runs charge the Hyperboost gauge 20% faster.',
+    cost: 60,
+    branch: 'ENGINE',
+    tier: 2,
+    prerequisite: 'engine_boost_1',
+    icon: Zap,
+    effectLabel: 'Boost Charge Rate +20%'
+  },
+  {
+    id: 'engine_boost_3',
+    name: 'Time Dilator',
+    description: 'Increases Slow-Mo active time by 2.0s, and boosts ship velocity by an additional 10 units/s during Hyperboost.',
+    cost: 100,
+    branch: 'ENGINE',
+    tier: 3,
+    prerequisite: 'engine_boost_2',
+    icon: Hourglass,
+    effectLabel: 'Slowmo +2s / Hyperboost Speed +10'
+  }
+];
 
 export default function MainMenu() {
   const activeTab = useGameStore((state) => state.menuTab);
   const setActiveTab = useGameStore((state) => state.setMenuTab);
+  const [garageTab, setGarageTab] = useState<'SHIPS' | 'UPGRADES' | 'VISUALS'>('SHIPS');
+  const [hoveredNode, setHoveredNode] = useState<string | null>(null);
+
+  const renderConnector = (sourceNodeId: string, color: string) => {
+    const isSourceUnlocked = upgrades[sourceNodeId as keyof typeof upgrades];
+    return (
+      <div className="flex items-center justify-center w-8 shrink-0">
+        <div 
+          className="h-[2px] w-full transition-all duration-300"
+          style={{ 
+            backgroundColor: isSourceUnlocked ? color : 'rgba(255, 255, 255, 0.08)',
+            boxShadow: isSourceUnlocked ? `0 0 8px ${color}` : 'none'
+          }}
+        />
+      </div>
+    );
+  };
+
+  const renderNode = (nodeId: string) => {
+    const node = UPGRADE_NODES.find(n => n.id === nodeId);
+    if (!node) return null;
+
+    const isUnlocked = upgrades[node.id as keyof typeof upgrades];
+    const hasPrereq = !node.prerequisite || upgrades[node.prerequisite as keyof typeof upgrades];
+    const canAfford = lifetimeCrystals >= node.cost;
+
+    // Get branch colors
+    const colors = {
+      DEFENSE: { primary: '#ff007f', border: 'border-[#ff007f]', bg: 'bg-[#ff007f]/10', shadow: 'shadow-[0_0_8px_rgba(255,0,127,0.25)]' },
+      HARVESTING: { primary: '#00f3ff', border: 'border-[#00f3ff]', bg: 'bg-[#00f3ff]/10', shadow: 'shadow-[0_0_8px_rgba(0,243,255,0.25)]' },
+      ENGINE: { primary: '#ffe600', border: 'border-[#ffe600]', bg: 'bg-[#ffe600]/10', shadow: 'shadow-[0_0_8px_rgba(255,230,0,0.25)]' }
+    }[node.branch as 'DEFENSE' | 'HARVESTING' | 'ENGINE'] || { primary: '#ffffff', border: 'border-white', bg: 'bg-white/10', shadow: '' };
+
+    let cardStyle = 'border-white/5 bg-black/40 text-gray-600 cursor-not-allowed';
+    if (isUnlocked) {
+      cardStyle = `${colors.border} ${colors.bg} ${colors.shadow} text-white cursor-pointer`;
+    } else if (hasPrereq) {
+      if (canAfford) {
+        cardStyle = `border-[#00f3ff]/40 bg-[#00f3ff]/5 text-cyan-400 hover:border-[#00f3ff] hover:text-white cursor-pointer hover:shadow-[0_0_6px_rgba(0,243,255,0.2)] animate-pulse`;
+      } else {
+        cardStyle = `border-white/10 bg-black/20 text-gray-400 cursor-pointer hover:border-white/20`;
+      }
+    }
+
+    const handleClick = () => {
+      if (isUnlocked) return;
+      if (!hasPrereq) return;
+      if (!canAfford) return;
+      buyUpgrade(node.id);
+    };
+
+    return (
+      <div
+        onClick={handleClick}
+        onMouseEnter={() => setHoveredNode(node.id)}
+        onMouseLeave={() => setHoveredNode(null)}
+        className={`w-11 h-11 rounded-lg border flex flex-col items-center transition-all ${
+          isUnlocked ? 'justify-center' : 'justify-between pt-2 pb-1'
+        } ${cardStyle}`}
+        style={{
+          boxShadow: isUnlocked ? `0 0 10px ${colors.primary}40, inset 0 0 5px ${colors.primary}20` : undefined
+        }}
+      >
+        {/* Node Icon */}
+        <node.icon size={19} className={isUnlocked ? '' : 'opacity-70'} />
+        
+        {/* Cost / Status Indicator */}
+        {!isUnlocked && (
+          !hasPrereq ? (
+            <Lock size={8} className="text-gray-600 mb-0.5" />
+          ) : (
+            <span className="text-[7.5px] font-bold text-gray-400 display-font leading-none">{node.cost}</span>
+          )
+        )}
+      </div>
+    );
+  };
 
   const startGame = useGameStore((state) => state.startGame);
   const highScore = useGameStore((state) => state.highScore);
@@ -46,23 +343,33 @@ export default function MainMenu() {
       <div className="absolute top-6 right-6 flex items-center gap-4">
         <button
           onClick={toggleMute}
-          className="p-3 glass-panel border-glow-purple text-white hover:text-cyan-400 transition-colors pointer-events-auto"
+          className="p-2.5 glass-panel border-glow-purple text-white hover:text-cyan-400 transition-colors pointer-events-auto"
           style={{ borderRadius: '50%', border: '1px solid rgba(157, 0, 255, 0.4)' }}
           title={isMuted ? 'Unmute' : 'Mute'}
         >
-          {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
+          {isMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
         </button>
       </div>
 
       {/* Main Panel */}
-      <div className="glass-panel w-full max-w-lg p-8 flex flex-col items-center border-glow-purple pointer-events-auto">
+      <div 
+        className="glass-panel p-8 flex flex-col items-center border-glow-purple pointer-events-auto"
+        style={{
+          width: '760px',
+          height: '640px',
+          transform: 'scale(min(1, calc((100vw - 48px) / 760), calc((100vh - 48px) / 640)))',
+          transformOrigin: 'center',
+          overflow: 'hidden',
+          flexShrink: 0
+        }}
+      >
         {/* Title */}
         <h1 
           className="display-font text-4xl md:text-5xl font-black mb-1 text-glow-magenta glitch text-center"
-          data-text="AETHER RIDER"
+          data-text="AETHER WINGS"
           style={{ letterSpacing: '4px', color: '#ff007f' }}
         >
-          AETHER RIDER
+          AETHER WINGS
         </h1>
         <p className="display-font text-xs uppercase tracking-widest text-cyan-400 mb-6 text-glow-cyan text-center">
           Retro 3D Infinite Runner
@@ -111,7 +418,7 @@ export default function MainMenu() {
             <div className="grid grid-cols-2 gap-4 w-full text-left mb-8 text-gray-300">
               <div className="p-3 bg-black/40 rounded-lg border border-white/5">
                 <div className="flex items-center gap-2 mb-1.5 text-[#00f3ff]">
-                  <Keyboard size={16} />
+                  <Keyboard size={14} />
                   <h3 className="display-font text-xs font-bold uppercase tracking-wider">Keyboard</h3>
                 </div>
                 <p className="text-[10px] leading-normal text-gray-400">
@@ -120,7 +427,7 @@ export default function MainMenu() {
               </div>
               <div className="p-3 bg-black/40 rounded-lg border border-white/5">
                 <div className="flex items-center gap-2 mb-1.5 text-[#ff007f]">
-                  <MousePointerClick size={16} />
+                  <MousePointerClick size={14} />
                   <h3 className="display-font text-xs font-bold uppercase tracking-wider">Mouse</h3>
                 </div>
                 <p className="text-[10px] leading-normal text-gray-400">
@@ -152,120 +459,231 @@ export default function MainMenu() {
               <span className="display-font text-lg font-bold text-[#ff007f] text-glow-magenta">{lifetimeCrystals} 💎</span>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-2">
-              {/* Left Side: Upgrades */}
-              <div className="flex flex-col gap-4">
-                <h3 className="display-font text-xs font-black uppercase text-cyan-400 tracking-wider mb-1 border-b border-cyan-500/20 pb-1 flex items-center gap-1.5">
-                  <Zap size={14} /> Ship Upgrades
-                </h3>
-                
-                {/* Magnet Upgrade */}
-                <div className="bg-black/20 p-3 rounded-lg border border-white/5 flex flex-col gap-2">
-                  <div className="flex justify-between items-baseline">
-                    <span className="display-font text-xs font-bold text-white uppercase">Crystal Magnet</span>
-                    <span className="text-[10px] text-gray-400">Lvl {upgrades.magnetLevel}/3</span>
-                  </div>
-                  <p className="text-[9px] text-gray-400 leading-snug">
-                    Pulls crystals dynamically from adjacent lanes (Radius: {upgrades.magnetLevel === 0 ? '0.8' : upgrades.magnetLevel === 1 ? '1.5' : upgrades.magnetLevel === 2 ? '2.5' : '4.0'}m).
-                  </p>
-                  {upgrades.magnetLevel < 3 ? (
-                    <button 
-                      onClick={() => buyUpgrade('MAGNET')}
-                      disabled={lifetimeCrystals < MAGNET_COSTS[upgrades.magnetLevel]}
-                      className={`text-[10px] font-bold py-1.5 rounded uppercase tracking-widest text-center transition-all ${
-                        lifetimeCrystals >= MAGNET_COSTS[upgrades.magnetLevel]
-                          ? 'bg-[#00f3ff]/20 hover:bg-[#00f3ff]/40 text-[#00f3ff] border border-[#00f3ff]/30'
-                          : 'bg-white/5 text-gray-500 border border-white/10 cursor-not-allowed'
+            {/* Garage Sub-Tabs */}
+            <div className="flex gap-2 mb-5 w-full border-b border-white/5 pb-2.5">
+              <button
+                onClick={() => setGarageTab('SHIPS')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 display-font text-[10px] font-bold uppercase tracking-wider transition-all border ${
+                  garageTab === 'SHIPS' 
+                    ? 'border-[#ff007f] text-[#ff007f] bg-[#ff007f]/10 shadow-[0_0_8px_rgba(255,0,127,0.2)] text-glow-magenta' 
+                    : 'border-white/5 text-gray-400 hover:text-white hover:border-white/20 bg-black/20'
+                }`}
+                style={{ borderRadius: '4px' }}
+              >
+                <Rocket size={12} />
+                Ships
+              </button>
+              <button
+                onClick={() => setGarageTab('UPGRADES')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 display-font text-[10px] font-bold uppercase tracking-wider transition-all border ${
+                  garageTab === 'UPGRADES' 
+                    ? 'border-[#00f3ff] text-[#00f3ff] bg-[#00f3ff]/10 shadow-[0_0_8px_rgba(0,243,255,0.2)] text-glow-cyan' 
+                    : 'border-white/5 text-gray-400 hover:text-white hover:border-white/20 bg-black/20'
+                }`}
+                style={{ borderRadius: '4px' }}
+              >
+                <Wrench size={12} />
+                Upgrades
+              </button>
+              <button
+                onClick={() => setGarageTab('VISUALS')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 display-font text-[10px] font-bold uppercase tracking-wider transition-all border ${
+                  garageTab === 'VISUALS' 
+                    ? 'border-[#ffe600] text-[#ffe600] bg-[#ffe600]/10 shadow-[0_0_8px_rgba(255,230,0,0.2)] text-glow-yellow' 
+                    : 'border-white/5 text-gray-400 hover:text-white hover:border-white/20 bg-black/20'
+                }`}
+                style={{ borderRadius: '4px' }}
+              >
+                <Palette size={12} />
+                Visuals
+              </button>
+            </div>
+
+            {/* 2.1 SHIPS SUB-TAB */}
+            {garageTab === 'SHIPS' && (
+              <div className="flex flex-col gap-2.5 max-h-[260px] overflow-y-auto pr-1">
+                {SKINS.filter(s => ['vortex', 'quantum', 'temporal'].includes(s.id)).map((skin) => {
+                  const isUnlocked = upgrades.unlockedSkins.includes(skin.id);
+                  const isEquipped = upgrades.equippedSkin === skin.id;
+
+                  return (
+                    <div 
+                      key={skin.id}
+                      onClick={() => isUnlocked ? equipSkin(skin.id) : buySkin(skin.id, skin.cost)}
+                      className={`p-3.5 rounded-lg border flex justify-between items-center cursor-pointer transition-all ${
+                        isEquipped
+                          ? 'bg-[#ff007f]/5 border-[#ff007f] shadow-[0_0_8px_rgba(255,0,127,0.15)]'
+                          : isUnlocked
+                            ? 'bg-black/20 border-white/10 hover:border-cyan-400'
+                            : 'bg-black/40 border-white/5 hover:border-yellow-400/40'
                       }`}
                     >
-                      Upgrade: {MAGNET_COSTS[upgrades.magnetLevel]} 💎
-                    </button>
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-black/40 border border-white/10 rounded flex items-center justify-center p-1.5 flex-shrink-0">
+                          <ShipSvgIcon id={skin.id} color={skin.color} />
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="display-font text-xs font-bold text-gray-200">{skin.name}</span>
+                          <span className="text-[9px] text-gray-400 mt-0.5 leading-snug">{skin.description}</span>
+                        </div>
+                      </div>
+                      <div className="flex-shrink-0">
+                        {isEquipped ? (
+                          <span className="text-[9px] uppercase font-black text-[#ff007f] tracking-wider text-glow-magenta">EQUIPPED</span>
+                        ) : isUnlocked ? (
+                          <span className="text-[9px] uppercase font-bold text-cyan-400 tracking-wider">EQUIP</span>
+                        ) : (
+                          <span className="text-[10px] font-bold text-[#ffe600] bg-yellow-950/20 border border-yellow-500/20 px-2 py-0.5 rounded">{skin.cost} 💎</span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* 2.2 UPGRADES SUB-TAB */}
+            {garageTab === 'UPGRADES' && (
+              <div className="flex flex-col gap-3">
+                {/* Connected Skill Tree Card Grid */}
+                <div className="flex flex-col gap-3.5 bg-black/20 p-4 border border-white/5 rounded-xl">
+                  {/* Defense Branch Row */}
+                  <div className="flex items-center gap-4">
+                    <div className="w-28 display-font text-[9px] font-black uppercase text-[#ff007f] tracking-widest text-glow-magenta shrink-0">
+                      Defense
+                    </div>
+                    <div className="flex items-center gap-0">
+                      {renderNode('defense_shield_1')}
+                      {renderConnector('defense_shield_1', '#ff007f')}
+                      {renderNode('defense_shield_2')}
+                      {renderConnector('defense_shield_2', '#ff007f')}
+                      {renderNode('defense_shield_3')}
+                    </div>
+                  </div>
+
+                  {/* Harvesting Branch Row */}
+                  <div className="flex items-center gap-4">
+                    <div className="w-28 display-font text-[9px] font-black uppercase text-[#00f3ff] tracking-widest text-glow-cyan shrink-0">
+                      Harvest
+                    </div>
+                    <div className="flex items-center gap-0">
+                      {renderNode('harvest_magnet_1')}
+                      {renderConnector('harvest_magnet_1', '#00f3ff')}
+                      {renderNode('harvest_magnet_2')}
+                      {renderConnector('harvest_magnet_2', '#00f3ff')}
+                      {renderNode('harvest_magnet_3')}
+                    </div>
+                  </div>
+
+                  {/* Engine Performance Row */}
+                  <div className="flex items-center gap-4">
+                    <div className="w-28 display-font text-[9px] font-black uppercase text-[#ffe600] tracking-widest text-glow-yellow shrink-0">
+                      Engine
+                    </div>
+                    <div className="flex items-center gap-0">
+                      {renderNode('engine_boost_1')}
+                      {renderConnector('engine_boost_1', '#ffe600')}
+                      {renderNode('engine_boost_2')}
+                      {renderConnector('engine_boost_2', '#ffe600')}
+                      {renderNode('engine_boost_3')}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Tech Tree Details Panel (Hover Specs Terminal) */}
+                <div className="p-3.5 glass-panel border border-white/10 bg-black/40 min-h-[105px] flex flex-col justify-center">
+                  {hoveredNode ? (
+                    (() => {
+                      const node = UPGRADE_NODES.find(n => n.id === hoveredNode);
+                      if (!node) return null;
+                      
+                      const isUnlocked = upgrades[node.id as keyof typeof upgrades];
+                      const hasPrereq = !node.prerequisite || upgrades[node.prerequisite as keyof typeof upgrades];
+                      const canAfford = lifetimeCrystals >= node.cost;
+                      
+                      let statusText = '';
+                      let statusColor = '';
+                      if (isUnlocked) {
+                        statusText = 'ACTIVE';
+                        statusColor = 'text-[#39ff14] text-glow-green';
+                      } else if (!hasPrereq) {
+                        const prereqNode = UPGRADE_NODES.find(n => n.id === node.prerequisite);
+                        statusText = `LOCKED: REQUIRES ${prereqNode?.name.toUpperCase()}`;
+                        statusColor = 'text-red-500';
+                      } else if (!canAfford) {
+                        statusText = `INSUFFICIENT CRYSTALS: REQUIRES ${node.cost} 💎`;
+                        statusColor = 'text-[#ffe600] text-glow-yellow';
+                      } else {
+                        statusText = `READY FOR INTEGRATION: INSTALL FOR ${node.cost} 💎`;
+                        statusColor = 'text-[#00f3ff] text-glow-cyan';
+                      }
+
+                      return (
+                        <>
+                          <div className="flex justify-between items-baseline mb-1">
+                            <span className="display-font text-xs font-black text-white uppercase tracking-wider flex items-center gap-1.5">
+                              <node.icon size={13} className={node.branch === 'DEFENSE' ? 'text-[#ff007f]' : node.branch === 'HARVESTING' ? 'text-[#00f3ff]' : 'text-[#ffe600]'} />
+                              {node.name}
+                            </span>
+                            <span className={`display-font text-[9px] font-black tracking-widest ${statusColor}`}>
+                              {statusText}
+                            </span>
+                          </div>
+                          <p className="text-[10px] text-gray-300 leading-snug">{node.description}</p>
+                          <div className="text-[8px] uppercase font-bold text-gray-500 mt-1.5 display-font tracking-wider">
+                            System Effect: {node.effectLabel}
+                          </div>
+                        </>
+                      );
+                    })()
                   ) : (
-                    <div className="text-[9px] font-bold py-1 bg-cyan-950/20 text-[#00f3ff] text-center border border-[#00f3ff]/20 rounded">
-                      MAX LEVEL UNLOCKED
+                    <div className="text-center text-[10px] uppercase font-bold tracking-widest text-gray-500 display-font animate-pulse">
+                      [ HOVER OVER A TECH NODE TO ANALYZE SYSTEM SPECIFICATIONS ]
                     </div>
                   )}
                 </div>
-
-                {/* Shield Deflector */}
-                <div className="bg-black/20 p-3 rounded-lg border border-white/5 flex flex-col gap-2">
-                  <div className="flex justify-between items-baseline">
-                    <span className="display-font text-xs font-bold text-white uppercase">Deflector Shield</span>
-                    <span className="text-[10px] text-gray-400">{upgrades.shieldBought ? '1 Ready' : 'Empty'}</span>
-                  </div>
-                  <p className="text-[9px] text-gray-400 leading-snug">
-                    Absorbs a single normal obstacle collision. Consumed upon launch.
-                  </p>
-                  <button 
-                    onClick={() => buyUpgrade('SHIELD')}
-                    disabled={upgrades.shieldBought || lifetimeCrystals < 25}
-                    className={`text-[10px] font-bold py-1.5 rounded uppercase tracking-widest text-center transition-all ${
-                      upgrades.shieldBought
-                        ? 'bg-green-950/20 text-[#39ff14] border border-[#39ff14]/30 cursor-default'
-                        : lifetimeCrystals >= 25
-                          ? 'bg-[#00f3ff]/20 hover:bg-[#00f3ff]/40 text-[#00f3ff] border border-[#00f3ff]/30'
-                          : 'bg-white/5 text-gray-500 border border-white/10 cursor-not-allowed'
-                    }`}
-                  >
-                    {upgrades.shieldBought ? 'Shield Charged' : 'Purchase: 25 💎'}
-                  </button>
-                </div>
               </div>
+            )}
 
-              {/* Right Side: Skins */}
-              <div className="flex flex-col gap-4">
-                <h3 className="display-font text-xs font-black uppercase text-[#ff007f] tracking-wider mb-1 border-b border-[#ff007f]/20 pb-1 flex items-center gap-1.5">
-                  <Flame size={14} /> Engine Exhaust Trim
-                </h3>
+            {/* 2.3 VISUALS SUB-TAB */}
+            {garageTab === 'VISUALS' && (
+              <div className="flex flex-col gap-2 max-h-[260px] overflow-y-auto pr-1">
+                {SKINS.filter(s => ['pink', 'cyan', 'yellow', 'green', 'purple'].includes(s.id)).map((skin) => {
+                  const isUnlocked = upgrades.unlockedSkins.includes(skin.id);
+                  const isEquipped = upgrades.equippedSkin === skin.id;
 
-                <div className="flex flex-col gap-2 max-h-[190px] overflow-y-auto pr-1">
-                  {SKINS.map((skin) => {
-                    const isUnlocked = upgrades.unlockedSkins.includes(skin.id);
-                    const isEquipped = upgrades.equippedSkin === skin.id;
-
-                    return (
-                      <div 
-                        key={skin.id}
-                        onClick={() => isUnlocked ? equipSkin(skin.id) : buySkin(skin.id, skin.cost)}
-                        className={`p-2.5 rounded-lg border flex justify-between items-center cursor-pointer transition-all ${
-                          isEquipped
-                            ? 'bg-white/10 border-[#ff007f] shadow-[0_0_8px_rgba(255,0,127,0.2)]'
-                            : isUnlocked
-                              ? 'bg-black/20 border-white/10 hover:border-[#00f3ff]'
-                              : 'bg-black/40 border-white/5 hover:border-[#ffe600]/40'
-                        }`}
-                      >
-                        <div className="flex items-start gap-3">
-                          <div 
-                            className="w-3 h-3 rounded-full border border-white/20 mt-0.5" 
-                            style={{ 
-                              backgroundColor: skin.color, 
-                              boxShadow: `0 0 6px ${skin.color}`,
-                              flexShrink: 0
-                            }} 
-                          />
-                          <div className="flex flex-col">
-                            <span className="display-font text-xs font-semibold text-gray-200">{skin.name}</span>
-                            {skin.description && (
-                              <span className="text-[9px] text-gray-400 mt-0.5 leading-snug">{skin.description}</span>
-                            )}
-                          </div>
+                  return (
+                    <div 
+                      key={skin.id}
+                      onClick={() => isUnlocked ? equipSkin(skin.id) : buySkin(skin.id, skin.cost)}
+                      className={`p-2.5 rounded-lg border flex justify-between items-center cursor-pointer transition-all ${
+                        isEquipped
+                          ? 'bg-white/10 border-[#ffe600] shadow-[0_0_6px_rgba(255,230,0,0.15)]'
+                          : isUnlocked
+                            ? 'bg-black/20 border-white/10 hover:border-cyan-400'
+                            : 'bg-black/40 border-white/5 hover:border-yellow-400/40'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-7 h-7 bg-black/40 border border-white/10 rounded flex items-center justify-center p-1 flex-shrink-0">
+                          <ShipSvgIcon id={skin.id} color={skin.color} />
                         </div>
-                        <div>
-                          {isEquipped ? (
-                            <span className="text-[9px] uppercase font-black text-[#ff007f] tracking-wider">EQUIPPED</span>
-                          ) : isUnlocked ? (
-                            <span className="text-[9px] uppercase font-bold text-cyan-400 tracking-wider">USE SKIN</span>
-                          ) : (
-                            <span className="text-[10px] font-bold text-[#ffe600]">{skin.cost} 💎</span>
-                          )}
-                        </div>
+                        <span className="display-font text-xs font-semibold text-gray-200">{skin.name}</span>
                       </div>
-                    );
-                  })}
-                </div>
+                      <div className="flex-shrink-0">
+                        {isEquipped ? (
+                          <span className="text-[9px] uppercase font-black text-[#ffe600] tracking-wider text-glow-yellow">EQUIPPED</span>
+                        ) : isUnlocked ? (
+                          <span className="text-[9px] uppercase font-bold text-cyan-400 tracking-wider">EQUIP</span>
+                        ) : (
+                          <span className="text-[10px] font-bold text-[#ffe600]">{skin.cost} 💎</span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-            </div>
+            )}
           </div>
         )}
 
@@ -273,10 +691,10 @@ export default function MainMenu() {
         {activeTab === 'MISSIONS' && (
           <div className="flex flex-col w-full text-left">
             <h3 className="display-font text-xs font-black uppercase text-[#ffe600] tracking-wider mb-4 border-b border-[#ffe600]/20 pb-1.5 flex items-center gap-1.5">
-              <Award size={14} /> Dynamic Challenges
+              <Award size={12} /> Dynamic Challenges
             </h3>
             
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-4 max-h-[360px] overflow-y-auto pr-1">
               {activeMissions.map((m) => (
                 <div 
                   key={m.id}

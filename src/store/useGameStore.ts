@@ -99,8 +99,19 @@ interface GameStore {
     shieldBought: boolean;
     unlockedSkins: string[];
     equippedSkin: string;
+    defense_shield_1: boolean;
+    defense_shield_2: boolean;
+    defense_shield_3: boolean;
+    harvest_magnet_1: boolean;
+    harvest_magnet_2: boolean;
+    harvest_magnet_3: boolean;
+    engine_boost_1: boolean;
+    engine_boost_2: boolean;
+    engine_boost_3: boolean;
   };
   shieldActive: boolean;
+  shieldStrength: number;
+  shieldRegenTimer: number;
   quantumShieldRegenerated: boolean;
   magnetActiveTime: number;
   slowMoActiveTime: number;
@@ -128,7 +139,7 @@ interface GameStore {
   activateBoost: () => void;
   tick: (dt: number) => void;
 
-  buyUpgrade: (type: 'MAGNET' | 'SHIELD') => void;
+  buyUpgrade: (nodeId: string) => void;
   buySkin: (skinId: string, cost: number) => void;
   equipSkin: (skinId: string) => void;
   clearCompletedMissionNotification: () => void;
@@ -154,12 +165,37 @@ export const useGameStore = create<GameStore>((set, get) => {
   const initialLifetimeCrystals = savedCrystals ? parseInt(savedCrystals, 10) : 0;
 
   const savedUpgrades = localStorage.getItem('aether_upgrades');
-  const initialUpgrades = savedUpgrades ? JSON.parse(savedUpgrades) : {
+  const defaultUpgrades = {
     magnetLevel: 0,
     shieldBought: false,
     unlockedSkins: ['pink'],
-    equippedSkin: 'pink'
+    equippedSkin: 'pink',
+    defense_shield_1: false,
+    defense_shield_2: false,
+    defense_shield_3: false,
+    harvest_magnet_1: false,
+    harvest_magnet_2: false,
+    harvest_magnet_3: false,
+    engine_boost_1: false,
+    engine_boost_2: false,
+    engine_boost_3: false,
   };
+
+  let initialUpgrades = defaultUpgrades;
+  if (savedUpgrades) {
+    try {
+      const parsed = JSON.parse(savedUpgrades);
+      // Migrate old upgrades to new tech tree
+      if (parsed.magnetLevel >= 1) parsed.harvest_magnet_1 = true;
+      if (parsed.magnetLevel >= 2) parsed.harvest_magnet_2 = true;
+      if (parsed.magnetLevel >= 3) parsed.harvest_magnet_3 = true;
+      if (parsed.shieldBought) parsed.defense_shield_1 = true;
+      
+      initialUpgrades = { ...defaultUpgrades, ...parsed };
+    } catch (e) {
+      console.error("Failed to parse saved upgrades", e);
+    }
+  }
 
   const savedMissions = localStorage.getItem('aether_active_missions');
   const initialMissions = savedMissions ? JSON.parse(savedMissions) : [
@@ -196,6 +232,8 @@ export const useGameStore = create<GameStore>((set, get) => {
     lifetimeCrystals: initialLifetimeCrystals,
     upgrades: initialUpgrades,
     shieldActive: false,
+    shieldStrength: 0,
+    shieldRegenTimer: 0,
     quantumShieldRegenerated: false,
     magnetActiveTime: 0,
     slowMoActiveTime: 0,
@@ -208,9 +246,15 @@ export const useGameStore = create<GameStore>((set, get) => {
     startGame: () => {
       const { upgrades } = get();
       let shieldActive = false;
+      let shieldStrength = 0;
       let newUpgrades = upgrades;
-      if (upgrades.shieldBought) {
+
+      if (upgrades.defense_shield_1) {
         shieldActive = true;
+        shieldStrength = upgrades.defense_shield_2 ? 2 : 1;
+      } else if (upgrades.shieldBought) {
+        shieldActive = true;
+        shieldStrength = 1;
         newUpgrades = { ...upgrades, shieldBought: false };
         localStorage.setItem('aether_upgrades', JSON.stringify(newUpgrades));
       }
@@ -218,6 +262,7 @@ export const useGameStore = create<GameStore>((set, get) => {
       // Quantum Vanguard passive: starts with shield
       if (upgrades.equippedSkin === 'quantum') {
         shieldActive = true;
+        shieldStrength = Math.max(shieldStrength, 1);
       }
 
       set({
@@ -241,6 +286,8 @@ export const useGameStore = create<GameStore>((set, get) => {
         blastActiveTime: 0,
         preBoostSpeed: 0,
         shieldActive,
+        shieldStrength,
+        shieldRegenTimer: 0,
         quantumShieldRegenerated: false,
         magnetActiveTime: 0,
         slowMoActiveTime: 0,
@@ -288,6 +335,8 @@ export const useGameStore = create<GameStore>((set, get) => {
         blastActiveTime: 0,
         preBoostSpeed: 0,
         shieldActive: false,
+        shieldStrength: 0,
+        shieldRegenTimer: 0,
         quantumShieldRegenerated: false,
         magnetActiveTime: 0,
         slowMoActiveTime: 0,
@@ -302,25 +351,47 @@ export const useGameStore = create<GameStore>((set, get) => {
     moveLeft: () => {
       if (get().gameState !== 'PLAYING' || get().boostActive) return;
       const { targetX } = get();
-      const currentLaneIndex = LANES.indexOf(targetX);
-      if (currentLaneIndex > 0) {
-        set({
-          targetX: LANES[currentLaneIndex - 1],
-          controlMode: 'KEYBOARD',
-        });
+      
+      // Find the closest discrete lane index
+      let closestLaneIndex = 0;
+      let minDistance = Infinity;
+      for (let i = 0; i < LANES.length; i++) {
+        const dist = Math.abs(LANES[i] - targetX);
+        if (dist < minDistance) {
+          minDistance = dist;
+          closestLaneIndex = i;
+        }
       }
+
+      // Move visual Right (decrement coordinate index)
+      const nextIndex = Math.max(0, closestLaneIndex - 1);
+      set({
+        targetX: LANES[nextIndex],
+        controlMode: 'KEYBOARD',
+      });
     },
 
     moveRight: () => {
       if (get().gameState !== 'PLAYING' || get().boostActive) return;
       const { targetX } = get();
-      const currentLaneIndex = LANES.indexOf(targetX);
-      if (currentLaneIndex < LANES.length - 1) {
-        set({
-          targetX: LANES[currentLaneIndex + 1],
-          controlMode: 'KEYBOARD',
-        });
+      
+      // Find the closest discrete lane index
+      let closestLaneIndex = 0;
+      let minDistance = Infinity;
+      for (let i = 0; i < LANES.length; i++) {
+        const dist = Math.abs(LANES[i] - targetX);
+        if (dist < minDistance) {
+          minDistance = dist;
+          closestLaneIndex = i;
+        }
       }
+
+      // Move visual Left (increment coordinate index)
+      const nextIndex = Math.min(LANES.length - 1, closestLaneIndex + 1);
+      set({
+        targetX: LANES[nextIndex],
+        controlMode: 'KEYBOARD',
+      });
     },
 
     setMouseX: (x) => {
@@ -368,42 +439,67 @@ export const useGameStore = create<GameStore>((set, get) => {
       if (gameState !== 'PLAYING' || boostActive || boostCharge < 10 || collisionTriggered) return;
 
       audioManager.playBoostFx();
+      const boostDuration = get().upgrades.engine_boost_1 ? 6.0 : 5.0;
       set({
         boostActive: true,
-        boostTimeRemaining: 5.0,
+        boostTimeRemaining: boostDuration,
         targetX: 0, // snap to center
         preBoostSpeed: speed, // Save speed from right before boost
         runStats: { ...runStats, boostsTriggered: runStats.boostsTriggered + 1 }
       });
     },
 
-    buyUpgrade: (type) => {
+    buyUpgrade: (nodeId) => {
       const { lifetimeCrystals, upgrades } = get();
-      if (type === 'MAGNET') {
-        const magnetCosts = [30, 50, 80];
-        const currentLevel = upgrades.magnetLevel;
-        if (currentLevel >= 3) return;
-        const cost = magnetCosts[currentLevel];
-        if (lifetimeCrystals >= cost) {
-          const newUpgrades = { ...upgrades, magnetLevel: currentLevel + 1 };
-          localStorage.setItem('aether_lifetime_crystals', String(lifetimeCrystals - cost));
-          localStorage.setItem('aether_upgrades', JSON.stringify(newUpgrades));
-          set({
-            lifetimeCrystals: lifetimeCrystals - cost,
-            upgrades: newUpgrades
-          });
-        }
-      } else if (type === 'SHIELD') {
-        const cost = 25;
-        if (!upgrades.shieldBought && lifetimeCrystals >= cost) {
-          const newUpgrades = { ...upgrades, shieldBought: true };
-          localStorage.setItem('aether_lifetime_crystals', String(lifetimeCrystals - cost));
-          localStorage.setItem('aether_upgrades', JSON.stringify(newUpgrades));
-          set({
-            lifetimeCrystals: lifetimeCrystals - cost,
-            upgrades: newUpgrades
-          });
-        }
+
+      const NODE_COSTS: Record<string, number> = {
+        defense_shield_1: 25,
+        defense_shield_2: 55,
+        defense_shield_3: 95,
+        harvest_magnet_1: 20,
+        harvest_magnet_2: 50,
+        harvest_magnet_3: 90,
+        engine_boost_1: 30,
+        engine_boost_2: 60,
+        engine_boost_3: 100,
+      };
+
+      const cost = NODE_COSTS[nodeId];
+      if (!cost) return;
+
+      // Check if already bought
+      if (upgrades[nodeId as keyof typeof upgrades]) return;
+
+      // Check prerequisites
+      const PREREQUISITES: Record<string, string | null> = {
+        defense_shield_1: null,
+        defense_shield_2: 'defense_shield_1',
+        defense_shield_3: 'defense_shield_2',
+        harvest_magnet_1: null,
+        harvest_magnet_2: 'harvest_magnet_1',
+        harvest_magnet_3: 'harvest_magnet_2',
+        engine_boost_1: null,
+        engine_boost_2: 'engine_boost_1',
+        engine_boost_3: 'engine_boost_2',
+      };
+
+      const prereq = PREREQUISITES[nodeId];
+      if (prereq && !upgrades[prereq as keyof typeof upgrades]) return;
+
+      if (lifetimeCrystals >= cost) {
+        const newUpgrades = {
+          ...upgrades,
+          [nodeId]: true
+        };
+        localStorage.setItem('aether_lifetime_crystals', String(lifetimeCrystals - cost));
+        localStorage.setItem('aether_upgrades', JSON.stringify(newUpgrades));
+        
+        audioManager.playShieldPickupFx(); // Satisfying purchase sound
+
+        set({
+          lifetimeCrystals: lifetimeCrystals - cost,
+          upgrades: newUpgrades
+        });
       }
     },
 
@@ -457,6 +553,7 @@ export const useGameStore = create<GameStore>((set, get) => {
       let nextMagnetActiveTime = Math.max(0, state.magnetActiveTime - dt);
       let nextSlowMoActiveTime = Math.max(0, state.slowMoActiveTime - dt);
       let nextShieldActive = state.shieldActive;
+      let shieldStrength = state.shieldStrength;
 
       // 1. Boost timers & Speed overrides
       let currentSpeed = state.speed;
@@ -473,7 +570,8 @@ export const useGameStore = create<GameStore>((set, get) => {
 
       if (state.boostActive) {
         nextBoostTime = state.boostTimeRemaining - physicsDt;
-        const targetBoostSpeed = state.maxSpeed + 25; // Boost speed is 95 units/s (normal max 70)
+        const extraBoostSpeed = state.upgrades.engine_boost_3 ? 35 : 25;
+        const targetBoostSpeed = state.maxSpeed + extraBoostSpeed;
         
         if (nextBoostTime > 1.0) {
           // Smoothly accelerate to match the 2.8 parts separation visual transition rate
@@ -668,8 +766,14 @@ export const useGameStore = create<GameStore>((set, get) => {
           } else if (nextShieldActive) {
             // Shield absorbed the collision!
             obs.z = -9999;
-            nextShieldActive = false; // Consume shield
-            audioManager.playShieldShatterFx();
+            if (shieldStrength > 1) {
+              shieldStrength = 1;
+              audioManager.playShieldShatterFx();
+            } else {
+              nextShieldActive = false;
+              shieldStrength = 0;
+              audioManager.playShieldShatterFx();
+            }
           } else {
             collisionDetected = true;
             break;
@@ -691,7 +795,14 @@ export const useGameStore = create<GameStore>((set, get) => {
       let magnetRadius = 0;
       if (nextMagnetActiveTime > 0) {
         magnetRadius = 6.0;
+      } else if (state.upgrades.harvest_magnet_3) {
+        magnetRadius = 15.0; // Draw everything from all lanes
+      } else if (state.upgrades.harvest_magnet_2) {
+        magnetRadius = 3.0;
+      } else if (state.upgrades.harvest_magnet_1) {
+        magnetRadius = 1.5;
       } else if (state.upgrades.magnetLevel > 0) {
+        // Fallback for old save data compatibility
         const magRadii = [0, 1.5, 2.5, 4.0];
         magnetRadius = magRadii[state.upgrades.magnetLevel];
       }
@@ -705,9 +816,10 @@ export const useGameStore = create<GameStore>((set, get) => {
         const xDiff = cry.x - state.shipX;
         const distToShip = Math.sqrt(xDiff * xDiff + zDiff * zDiff);
 
-        if (magnetRadius > 0 && distToShip < magnetRadius && zDiff > 0) {
-          // Attract crystals to ship
-          const pull = Math.min(1.0, (1.0 - distToShip / magnetRadius) * physicsDt * 8.0);
+        const zPullThreshold = Math.max(4.0, currentSpeed * 0.12);
+        if (magnetRadius > 0 && distToShip < magnetRadius && zDiff > 0 && zDiff < zPullThreshold) {
+          // Attract crystals to ship with a snappy arcade pull rate to guarantee collection from distant lanes
+          const pull = Math.min(1.0, physicsDt * 16.0);
           cry.x += (state.shipX - cry.x) * pull;
           cry.z += (newPlayerZ - cry.z) * pull * 0.5;
         }
@@ -732,13 +844,17 @@ export const useGameStore = create<GameStore>((set, get) => {
           pw.collected = true;
           if (pw.type === 'SHIELD') {
             nextShieldActive = true;
+            shieldStrength = state.upgrades.defense_shield_2 ? 2 : 1;
             audioManager.playShieldPickupFx();
           } else if (pw.type === 'MAGNET') {
-            nextMagnetActiveTime = 8.0;
+            const extraTime = state.upgrades.harvest_magnet_2 ? 3.0 : 0.0;
+            nextMagnetActiveTime = 8.0 + extraTime;
             audioManager.playMagnetPickupFx();
           } else if (pw.type === 'SLOWMO') {
             // Temporal Warp Wing passive: 8s slow-mo duration instead of 5s
-            nextSlowMoActiveTime = state.upgrades.equippedSkin === 'temporal' ? 8.0 : 5.0;
+            const baseDuration = state.upgrades.equippedSkin === 'temporal' ? 8.0 : 5.0;
+            const extraDuration = state.upgrades.engine_boost_3 ? 2.0 : 0.0;
+            nextSlowMoActiveTime = baseDuration + extraDuration;
             audioManager.playSlowMoPickupFx();
           }
         }
@@ -751,7 +867,8 @@ export const useGameStore = create<GameStore>((set, get) => {
 
       // Accumulate boost charge (max 10) if boost is not currently active
       if (!nextBoostActive && crystalsCollectedThisFrame > 0) {
-        nextBoostCharge = Math.min(10, nextBoostCharge + crystalsEarnedThisFrame);
+        const boostChargeRate = state.upgrades.engine_boost_2 ? 1.2 : 1.0;
+        nextBoostCharge = Math.min(10, nextBoostCharge + crystalsEarnedThisFrame * boostChargeRate);
       }
 
       // Economy update: add collected crystals to lifetime count
@@ -806,8 +923,26 @@ export const useGameStore = create<GameStore>((set, get) => {
       let nextQuantumShieldRegenerated = state.quantumShieldRegenerated;
       if (state.upgrades.equippedSkin === 'quantum' && !nextShieldActive && newPlayerZ >= 1500 && !nextQuantumShieldRegenerated) {
         nextShieldActive = true;
+        shieldStrength = Math.max(shieldStrength, 1);
         nextQuantumShieldRegenerated = true;
         audioManager.playShieldPickupFx();
+      }
+
+      // Emergency Nano-Regen (defense_shield_3): regenerates shield in 40s when inactive
+      let nextShieldRegenTimer = state.shieldRegenTimer ?? 0;
+      if (state.upgrades.defense_shield_3 && !nextShieldActive) {
+        if (nextShieldRegenTimer <= 0) {
+          nextShieldRegenTimer = 40.0; // 40 seconds cooldown
+        } else {
+          nextShieldRegenTimer = Math.max(0, nextShieldRegenTimer - physicsDt);
+          if (nextShieldRegenTimer <= 0) {
+            nextShieldActive = true;
+            shieldStrength = 1;
+            audioManager.playShieldPickupFx();
+          }
+        }
+      } else {
+        nextShieldRegenTimer = 0;
       }
 
       set({
@@ -828,6 +963,8 @@ export const useGameStore = create<GameStore>((set, get) => {
         preBoostSpeed: nextPreBoostSpeed,
 
         shieldActive: nextShieldActive,
+        shieldStrength,
+        shieldRegenTimer: nextShieldRegenTimer,
         quantumShieldRegenerated: nextQuantumShieldRegenerated,
         magnetActiveTime: nextMagnetActiveTime,
         slowMoActiveTime: nextSlowMoActiveTime,
