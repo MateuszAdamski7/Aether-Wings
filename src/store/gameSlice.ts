@@ -591,7 +591,6 @@ export const createGameSlice: StateCreator<GameStore, [], [], GameSlice> = (set,
       };
 
       // Mission progress evaluations
-      let recentSuccess: { id: string, description: string, reward: number } | null = null;
       const nextMissions = state.activeMissions.map((m) => {
         if (m.completed) return m;
 
@@ -607,16 +606,22 @@ export const createGameSlice: StateCreator<GameStore, [], [], GameSlice> = (set,
         }
 
         const completed = current >= m.target;
-        if (completed && !m.completed) {
-          recentSuccess = { id: m.id, description: m.description, reward: m.reward };
-          audioManager.playMissionSuccessFx();
-        }
-
         return { ...m, current: Math.min(m.target, current), completed };
       });
 
-      if (recentSuccess) {
-        nextLifetimeCrystals += recentSuccess.reward;
+      const newlyCompleted = nextMissions.find(
+        (m, idx) => m.completed && !state.activeMissions[idx].completed
+      );
+
+      let recentSuccess: { id: string; description: string; reward: number } | null = null;
+      if (newlyCompleted) {
+        recentSuccess = {
+          id: newlyCompleted.id,
+          description: newlyCompleted.description,
+          reward: newlyCompleted.reward
+        };
+        audioManager.playMissionSuccessFx();
+        nextLifetimeCrystals += newlyCompleted.reward;
         localStorage.setItem('aether_lifetime_crystals', String(nextLifetimeCrystals));
         localStorage.setItem('aether_active_missions', JSON.stringify(nextMissions));
       }
