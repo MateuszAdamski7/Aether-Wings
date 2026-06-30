@@ -1,8 +1,8 @@
-import { useRef, useMemo } from 'react';
+import { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Sparkles } from '@react-three/drei';
 import * as THREE from 'three';
-import { useGameStore } from '../store/useGameStore';
+import { useGameStore } from '../../store/useGameStore';
 
 // Custom shader for the classic Synthwave Sun
 const SunShader = {
@@ -49,12 +49,26 @@ const SunShader = {
   `
 };
 
+const MOUNTAINS = Array.from({ length: 12 }).map((_, i) => {
+  const isRight = i % 2 === 0;
+  const x = isRight ? 12 : -12;
+  const index = Math.floor(i / 2);
+  const zOffset = index * 45;
+  
+  const height = 6 + Math.random() * 8;
+  const radius = 3 + Math.random() * 4;
+  const color = isRight ? '#ff007f' : '#00f3ff';
+
+  return { x, zOffset, height, radius, color };
+});
+
 export default function Environment() {
   const sunMaterialRef = useRef<THREE.ShaderMaterial>(null);
   const followGroupRef = useRef<THREE.Group>(null);
 
   // Reactively subscribe for star color switches (infrequent re-renders)
   const currentSector = useGameStore((state) => state.currentSector);
+  const graphicsQuality = useGameStore((state) => state.graphicsQuality);
   
   // Colors for star sparkles in each sector biome
   const starColor1 = currentSector === 1 ? '#00f3ff' : currentSector === 2 ? '#39ff14' : '#ff0000';
@@ -79,9 +93,9 @@ export default function Environment() {
     const s3Top = new THREE.Color('#ff003c');
     const s3Fog = new THREE.Color('#090214');
 
-    let targetBottom = new THREE.Color();
-    let targetTop = new THREE.Color();
-    let targetFogColor = new THREE.Color();
+    const targetBottom = new THREE.Color();
+    const targetTop = new THREE.Color();
+    const targetFogColor = new THREE.Color();
 
     if (playerZ < 1000) {
       targetBottom.copy(s1Bottom);
@@ -130,26 +144,6 @@ export default function Environment() {
     }
   });
 
-  // Generate mountain/tower layout positions on the sides
-  const mountains = useMemo(() => {
-    const arr = [];
-    const count = 12; // 6 on each side
-    const spacing = 45; // space along Z
-    for (let i = 0; i < count; i++) {
-      const isRight = i % 2 === 0;
-      const x = isRight ? 12 : -12;
-      const index = Math.floor(i / 2);
-      const zOffset = index * spacing;
-      
-      const height = 6 + Math.random() * 8;
-      const radius = 3 + Math.random() * 4;
-      const color = isRight ? '#ff007f' : '#00f3ff';
-
-      arr.push({ x, zOffset, height, radius, color });
-    }
-    return arr;
-  }, []);
-
   return (
     <>
       {/* Deep Space Background Color */}
@@ -170,7 +164,7 @@ export default function Environment() {
       <group ref={followGroupRef}>
         {/* Floating Retro Stars/Particles */}
         <Sparkles
-          count={250}
+          count={graphicsQuality === 'HIGH' ? 250 : 80}
           scale={[60, 30, 180]}
           position={[0, 10, 40]} // Relative to group
           size={2.5}
@@ -179,7 +173,7 @@ export default function Environment() {
           color={starColor1}
         />
         <Sparkles
-          count={200}
+          count={graphicsQuality === 'HIGH' ? 200 : 60}
           scale={[60, 30, 180]}
           position={[0, 10, 40]} // Relative to group
           size={2.0}
@@ -203,7 +197,7 @@ export default function Environment() {
       </group>
 
       {/* Neon Mountains / Side Pyramids (Morphs into skyscrapers in advanced sectors) */}
-      {mountains.map((mountain, index) => {
+      {MOUNTAINS.map((mountain, index) => {
         return (
           <MountainInstance
             key={index}
@@ -273,7 +267,7 @@ function MountainInstance({ mountain }: MountainProps) {
     } else {
       if (towerWireRef.current) {
         // Sector 2/3 colors
-        let targetColor = new THREE.Color();
+        const targetColor = new THREE.Color();
         if (absoluteZ >= 2800) {
           // Sector 3: Left Red, Right Violet
           targetColor.setStyle(mountain.x > 0 ? '#9d00ff' : '#ff0000');

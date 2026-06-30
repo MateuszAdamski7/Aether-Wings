@@ -1,7 +1,7 @@
 import { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { useGameStore } from '../store/useGameStore';
-import type { PowerUp } from '../store/useGameStore';
+import { useGameStore } from '../../store/useGameStore';
+import type { PowerUp } from '../../store/useGameStore';
 import * as THREE from 'three';
 
 export default function PowerUps() {
@@ -19,10 +19,15 @@ export default function PowerUps() {
 function PowerUpInstance({ powerUp }: { powerUp: PowerUp }) {
   const meshRef = useRef<THREE.Group>(null);
   const ringRef = useRef<THREE.Mesh>(null);
-  const phaseOffset = useRef(Math.random() * Math.PI * 2);
+  const phaseOffset = useRef<number | null>(null);
 
   useFrame((state, delta) => {
     if (powerUp.collected) return;
+
+    if (phaseOffset.current === null) {
+      phaseOffset.current = Math.random() * Math.PI * 2;
+    }
+    const currentPhaseOffset = phaseOffset.current;
 
     const time = state.clock.getElapsedTime();
     const { slowMoActiveTime } = useGameStore.getState();
@@ -32,7 +37,7 @@ function PowerUpInstance({ powerUp }: { powerUp: PowerUp }) {
     if (meshRef.current) {
       // Rotation & Bobbing
       meshRef.current.rotation.y += dt * 3.0;
-      meshRef.current.position.y = 0.15 + Math.sin(time * 4.0 + phaseOffset.current) * 0.1;
+      meshRef.current.position.y = 0.15 + Math.sin(time * 4.0 + currentPhaseOffset) * 0.1;
     }
 
     if (ringRef.current) {

@@ -1,10 +1,10 @@
 import { useEffect } from 'react';
 import { useGameStore } from './store/useGameStore';
-import GameCanvas from './components/GameCanvas';
-import MainMenu from './components/MainMenu';
-import GameHUD from './components/GameHUD';
-import GameOver from './components/GameOver';
-import ErrorBoundary from './components/ErrorBoundary';
+import GameCanvas from './components/3d/GameCanvas';
+import MainMenu from './components/ui/MainMenu';
+import GameHUD from './components/ui/GameHUD';
+import GameOver from './components/ui/GameOver';
+import ErrorBoundary from './components/ui/ErrorBoundary';
 import { audioManager } from './utils/audio';
 
 function App() {

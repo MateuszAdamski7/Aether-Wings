@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
-import { useGameStore } from '../store/useGameStore';
-import { audioManager } from '../utils/audio';
+import { useGameStore } from '../../store/useGameStore';
+import { audioManager } from '../../utils/audio';
 import { RefreshCw, Trophy, Zap, Compass, Shield } from 'lucide-react';
 import confetti from 'canvas-confetti';
 

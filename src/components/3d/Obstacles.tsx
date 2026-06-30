@@ -1,5 +1,5 @@
-import { useGameStore } from '../store/useGameStore';
-import type { Obstacle } from '../store/useGameStore';
+import { useGameStore } from '../../store/useGameStore';
+import type { Obstacle } from '../../store/useGameStore';
 
 export default function Obstacles() {
   const obstacles = useGameStore((state) => state.obstacles);

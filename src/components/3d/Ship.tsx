@@ -1,15 +1,15 @@
 import { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { useGameStore } from '../store/useGameStore';
+import { useGameStore } from '../../store/useGameStore';
 import * as THREE from 'three';
 
 export default function Ship() {
   const meshRef = useRef<THREE.Group>(null);
-  const fuselageRef = useRef<any>(null);
-  const canopyRef = useRef<any>(null);
-  const leftWingRef = useRef<any>(null);
-  const rightWingRef = useRef<any>(null);
-  const nozzleRef = useRef<any>(null);
+  const fuselageRef = useRef<THREE.Object3D>(null);
+  const canopyRef = useRef<THREE.Mesh>(null);
+  const leftWingRef = useRef<THREE.Group>(null);
+  const rightWingRef = useRef<THREE.Group>(null);
+  const nozzleRef = useRef<THREE.Group>(null);
   
   // Get game store state (only subscribe to static/rare elements to prevent React re-renders)
   const controlMode = useGameStore((state) => state.controlMode);

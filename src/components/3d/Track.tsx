@@ -1,7 +1,7 @@
 import { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
-import { useGameStore } from '../store/useGameStore';
+import { useGameStore } from '../../store/useGameStore';
 
 // Custom shader for the scrolling cyberpunk runway grid
 // Draws the roadbed, horizontal scrolling grid lines, and dashed lane dividers
@@ -86,9 +86,9 @@ export default function Track() {
     const s3Left = new THREE.Color('#ff0000');  // Crimson Red
     const s3Right = new THREE.Color('#9d00ff'); // Nebula Violet
 
-    let targetTheme = new THREE.Color();
-    let targetLeft = new THREE.Color();
-    let targetRight = new THREE.Color();
+    const targetTheme = new THREE.Color();
+    const targetLeft = new THREE.Color();
+    const targetRight = new THREE.Color();
 
     if (playerZ < 1000) {
       targetTheme.copy(s1Theme);

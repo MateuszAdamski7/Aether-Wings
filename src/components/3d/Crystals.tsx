@@ -1,7 +1,7 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { useGameStore } from '../store/useGameStore';
-import type { Crystal } from '../store/useGameStore';
+import { useGameStore } from '../../store/useGameStore';
+import type { Crystal } from '../../store/useGameStore';
 import * as THREE from 'three';
 
 export default function Crystals() {
@@ -21,12 +21,16 @@ function CrystalInstance({ crystal }: { crystal: Crystal }) {
   const ringRef = useRef<THREE.Mesh>(null);
   
   // Phase offset to ensure crystals do not bob in perfect synchronization
-  const phaseOffset = useRef(Math.random() * Math.PI * 2);
+  const phaseOffset = useRef<number | null>(null);
   const collectTime = useRef(0);
-  const isDone = useRef(false);
+  const [isDone, setIsDone] = useState(false);
   const initialWorldPos = useRef<THREE.Vector3 | null>(null);
 
   useFrame((state, delta) => {
+    if (phaseOffset.current === null) {
+      phaseOffset.current = Math.random() * Math.PI * 2;
+    }
+    const currentPhaseOffset = phaseOffset.current;
     const time = state.clock.getElapsedTime();
 
     if (crystal.collected) {
@@ -36,7 +40,7 @@ function CrystalInstance({ crystal }: { crystal: Crystal }) {
       const p = Math.min(1.0, collectTime.current / duration);
 
       if (p >= 1.0) {
-        isDone.current = true;
+        setIsDone(true);
         return;
       }
 
@@ -85,7 +89,7 @@ function CrystalInstance({ crystal }: { crystal: Crystal }) {
       // 2. NORMAL SPINNING / BOBBING ANIMATION
       if (meshRef.current) {
         meshRef.current.rotation.y += delta * 2.5;
-        meshRef.current.position.y = 0.1 + Math.sin(time * 4.5 + phaseOffset.current) * 0.12;
+        meshRef.current.position.y = 0.1 + Math.sin(time * 4.5 + currentPhaseOffset) * 0.12;
         meshRef.current.position.x = 0;
         meshRef.current.position.z = 0;
         meshRef.current.scale.set(1, 1, 1);
@@ -98,7 +102,7 @@ function CrystalInstance({ crystal }: { crystal: Crystal }) {
     }
   });
 
-  if (isDone.current) return null;
+  if (isDone) return null;
 
   return (
     <group position={[crystal.x, 0.1, crystal.z]}>

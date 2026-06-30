@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { useGameStore } from '../store/useGameStore';
-import { audioManager } from '../utils/audio';
+import { useGameStore } from '../../store/useGameStore';
+import { audioManager } from '../../utils/audio';
+import { SKINS, UPGRADE_NODES } from '../../config/gameConfig';
 import { 
   Volume2, 
   VolumeX, 
@@ -10,28 +11,9 @@ import {
   Rocket, 
   Wrench, 
   Palette,
-  Shield, 
-  ShieldAlert, 
-  Zap, 
-  Magnet, 
-  Coins, 
-  Sparkles, 
-  Gauge, 
-  Hourglass, 
-  Layers,
-  Lock
+  Lock,
+  Cpu
 } from 'lucide-react';
-
-const SKINS = [
-  { id: 'pink', name: 'Laser Pink', color: '#ff0055', cost: 0, description: '' },
-  { id: 'cyan', name: 'Cyan Flare', color: '#00f3ff', cost: 40, description: '' },
-  { id: 'yellow', name: 'Solar Yellow', color: '#ffe600', cost: 40, description: '' },
-  { id: 'green', name: 'Acid Green', color: '#39ff14', cost: 40, description: '' },
-  { id: 'purple', name: 'Nebula Violet', color: '#9d00ff', cost: 40, description: '' },
-  { id: 'vortex', name: 'Vortex Singularity', color: '#00f3ff', cost: 150, description: 'Passive: 2x Crystals & Boost charge' },
-  { id: 'quantum', name: 'Quantum Vanguard', color: '#00ffff', cost: 150, description: 'Passive: Start shield & auto-regen' },
-  { id: 'temporal', name: 'Temporal Warp Wing', color: '#ffe600', cost: 150, description: 'Passive: 0.45x Slow-Mo & 8s powerups' }
-];
 
 function ShipSvgIcon({ id, color }: { id: string; color: string }) {
   if (id === 'pink') {
@@ -130,111 +112,6 @@ function ShipSvgIcon({ id, color }: { id: string; color: string }) {
   return null;
 }
 
-const UPGRADE_NODES = [
-  // Branch 1: Defense
-  {
-    id: 'defense_shield_1',
-    name: 'Shield Deflector',
-    description: 'Deploys an energy barrier that absorbs one collision. Starts charged on every run.',
-    cost: 25,
-    branch: 'DEFENSE',
-    tier: 1,
-    prerequisite: null,
-    icon: Shield,
-    effectLabel: 'Shield capacity: 1 hit'
-  },
-  {
-    id: 'defense_shield_2',
-    name: 'Shield Fortification',
-    description: 'Increases deflector capacity. The shield can absorb up to 2 collisions before shattering.',
-    cost: 55,
-    branch: 'DEFENSE',
-    tier: 2,
-    prerequisite: 'defense_shield_1',
-    icon: Layers,
-    effectLabel: 'Shield capacity: 2 hits'
-  },
-  {
-    id: 'defense_shield_3',
-    name: 'Emergency Nano-Regen',
-    description: 'When the shield is fully depleted, it will automatically regenerate back to 1 charge after 40 seconds of clean flight.',
-    cost: 95,
-    branch: 'DEFENSE',
-    tier: 3,
-    prerequisite: 'defense_shield_2',
-    icon: ShieldAlert,
-    effectLabel: 'Auto-regenerates shield (40s CD)'
-  },
-  // Branch 2: Harvesting
-  {
-    id: 'harvest_magnet_1',
-    name: 'Crystal Magnet',
-    description: 'Creates a magnetic field pulling road crystals towards your ship (Radius: 1.5m).',
-    cost: 20,
-    branch: 'HARVESTING',
-    tier: 1,
-    prerequisite: null,
-    icon: Magnet,
-    effectLabel: 'Magnet Range: 1.5m'
-  },
-  {
-    id: 'harvest_magnet_2',
-    name: 'Magnet Amplification',
-    description: 'Enhances magnetic pull range to 3.0m and increases the duration of picked-up Magnet power-ups by 3 seconds.',
-    cost: 50,
-    branch: 'HARVESTING',
-    tier: 2,
-    prerequisite: 'harvest_magnet_1',
-    icon: Sparkles,
-    effectLabel: 'Magnet Range: 3.0m / Power-up +3s'
-  },
-  {
-    id: 'harvest_magnet_3',
-    name: 'Singularity Attractor',
-    description: 'Unlocks ultimate magnet range (15.0m), drawing all road crystals from all lanes instantly.',
-    cost: 90,
-    branch: 'HARVESTING',
-    tier: 3,
-    prerequisite: 'harvest_magnet_2',
-    icon: Coins,
-    effectLabel: 'Draws crystals from all lanes'
-  },
-  // Branch 3: Performance
-  {
-    id: 'engine_boost_1',
-    name: 'Boost Overcharger',
-    description: 'Upgrades the Hyperboost duration. Hyperboost lasts 1 second longer (6 seconds total).',
-    cost: 30,
-    branch: 'ENGINE',
-    tier: 1,
-    prerequisite: null,
-    icon: Gauge,
-    effectLabel: 'Hyperboost Duration: 6.0s'
-  },
-  {
-    id: 'engine_boost_2',
-    name: 'Fuel Recovery Matrix',
-    description: 'Optimizes fuel converter. Crystals collected during standard runs charge the Hyperboost gauge 20% faster.',
-    cost: 60,
-    branch: 'ENGINE',
-    tier: 2,
-    prerequisite: 'engine_boost_1',
-    icon: Zap,
-    effectLabel: 'Boost Charge Rate +20%'
-  },
-  {
-    id: 'engine_boost_3',
-    name: 'Time Dilator',
-    description: 'Increases Slow-Mo active time by 2.0s, and boosts ship velocity by an additional 10 units/s during Hyperboost.',
-    cost: 100,
-    branch: 'ENGINE',
-    tier: 3,
-    prerequisite: 'engine_boost_2',
-    icon: Hourglass,
-    effectLabel: 'Slowmo +2s / Hyperboost Speed +10'
-  }
-];
-
 export default function MainMenu() {
   const activeTab = useGameStore((state) => state.menuTab);
   const setActiveTab = useGameStore((state) => state.setMenuTab);
@@ -320,6 +197,14 @@ export default function MainMenu() {
   const highScore = useGameStore((state) => state.highScore);
   const isMuted = useGameStore((state) => state.isMuted);
   const toggleMute = useGameStore((state) => state.toggleMute);
+  const graphicsQuality = useGameStore((state) => state.graphicsQuality);
+  const setGraphicsQuality = useGameStore((state) => state.setGraphicsQuality);
+
+  const toggleGraphics = () => {
+    const nextQuality = graphicsQuality === 'HIGH' ? 'LOW' : 'HIGH';
+    setGraphicsQuality(nextQuality);
+    audioManager.playStartFx();
+  };
 
   // Shop states
   const lifetimeCrystals = useGameStore((state) => state.lifetimeCrystals);
@@ -341,9 +226,26 @@ export default function MainMenu() {
     <div className="absolute inset-0 flex flex-col items-center justify-center p-6 z-10 select-none crt-flicker">
       {/* Top bar controls */}
       <div className="absolute top-6 right-6 flex items-center gap-4">
+        {/* Graphics Quality Toggle */}
+        <button
+          onClick={toggleGraphics}
+          className={`p-2.5 glass-panel text-white hover:text-white transition-all pointer-events-auto flex items-center justify-center ${
+            graphicsQuality === 'HIGH' ? 'border-glow-magenta text-glow-magenta' : 'border-glow-cyan text-glow-cyan'
+          }`}
+          style={{ 
+            borderRadius: '50%', 
+            border: graphicsQuality === 'HIGH' ? '1px solid rgba(255, 0, 127, 0.4)' : '1px solid rgba(0, 243, 255, 0.4)',
+            boxShadow: graphicsQuality === 'HIGH' ? '0 0 8px rgba(255, 0, 127, 0.25)' : '0 0 8px rgba(0, 243, 255, 0.25)'
+          }}
+          title={graphicsQuality === 'HIGH' ? 'Switch to Performance Mode (Runs cooler)' : 'Switch to High Quality Graphics'}
+        >
+          <Cpu size={16} className={graphicsQuality === 'HIGH' ? 'animate-pulse' : ''} />
+        </button>
+
+        {/* Audio Mute Toggle */}
         <button
           onClick={toggleMute}
-          className="p-2.5 glass-panel border-glow-purple text-white hover:text-cyan-400 transition-colors pointer-events-auto"
+          className="p-2.5 glass-panel border-glow-purple text-white hover:text-cyan-400 transition-colors pointer-events-auto flex items-center justify-center"
           style={{ borderRadius: '50%', border: '1px solid rgba(157, 0, 255, 0.4)' }}
           title={isMuted ? 'Unmute' : 'Mute'}
         >
@@ -601,8 +503,8 @@ export default function MainMenu() {
                       const hasPrereq = !node.prerequisite || upgrades[node.prerequisite as keyof typeof upgrades];
                       const canAfford = lifetimeCrystals >= node.cost;
                       
-                      let statusText = '';
-                      let statusColor = '';
+                      let statusText: string;
+                      let statusColor: string;
                       if (isUnlocked) {
                         statusText = 'ACTIVE';
                         statusColor = 'text-[#39ff14] text-glow-green';

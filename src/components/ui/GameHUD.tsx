@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useGameStore } from '../store/useGameStore';
+import { useGameStore } from '../../store/useGameStore';
 import { Volume2, VolumeX, ShieldAlert, Shield, Award } from 'lucide-react';
 
 export default function GameHUD() {
