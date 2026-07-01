@@ -1,5 +1,9 @@
 # Aether Wings
 
+
+## **[https://aether-wings.vercel.app/](https://aether-wings.vercel.app/)**
+
+
 **Aether Wings** is a retro-futuristic 3D arcade infinite runner. Players pilot a customizable spaceship down a three-lane cyberpunk runway, dodging sector-specific obstacles, picking up power-ups (Shields, Magnets, and Slow-Mo), and collecting crystals. Accumulating crystals charges a Hyperboost gauge, allowing players to activate an invulnerability state and trigger sonic blasts that shatter hazards. Outside the run, players spend collected crystals in the Garage to unlock ship skins with unique passives, purchase tech tree upgrades, and track active gameplay challenges.
 
 ---
@@ -203,10 +207,3 @@ npm run dev
 ### 4. Launch in Browser
 Once the dev server is active, open your web browser and navigate to:
 👉 **[http://localhost:5173](http://localhost:5173)**
-
----
-
-## 🌐 Production Live Build
-
-The compiled production build of **Aether Wings** is hosted live at:
-👉 **[https://aether-wings.vercel.app/](https://aether-wings.vercel.app/)**
