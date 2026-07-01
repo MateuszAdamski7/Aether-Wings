@@ -23,7 +23,6 @@ export default function GameHUD() {
   const shieldRegenTimer = useGameStore((state) => state.shieldRegenTimer);
   const magnetActiveTime = useGameStore((state) => state.magnetActiveTime);
   const slowMoActiveTime = useGameStore((state) => state.slowMoActiveTime);
-  const currentSector = useGameStore((state) => state.currentSector);
   const upgrades = useGameStore((state) => state.upgrades);
   
   // Mission notifications
@@ -48,24 +47,12 @@ export default function GameHUD() {
     <div className="absolute inset-0 z-10 pointer-events-none select-none p-6 flex flex-col justify-between">
       {/* 1. TOP HEADER BAR */}
       <div className="flex justify-between items-start w-full">
-        {/* Top-Left: Score, Distance & Sector */}
+        {/* Top-Left: Score & Distance */}
         <div className="glass-panel p-4 flex flex-col gap-1 border-glow-purple pointer-events-auto min-w-[160px]">
-          <div className="flex justify-between items-center">
-            <div>
-              <div className="text-[10px] uppercase tracking-widest text-[#00f3ff] font-bold display-font">Score</div>
-              <div className="display-font text-2xl font-black text-white text-glow-cyan leading-tight">
-                {score.toLocaleString()}
-              </div>
-            </div>
-            {/* Sector indicator badge */}
-            <div className={`px-2 py-0.5 rounded text-[8px] uppercase tracking-widest font-bold display-font border ${
-              currentSector === 1 
-                ? 'bg-purple-950/20 text-[#9d00ff] border-[#9d00ff]/30 shadow-[0_0_4px_#9d00ff]' 
-                : currentSector === 2 
-                  ? 'bg-amber-950/20 text-[#ffaa00] border-[#ffaa00]/30 shadow-[0_0_4px_#ffaa00]'
-                  : 'bg-red-950/20 text-[#ff003c] border-[#ff003c]/30 shadow-[0_0_4px_#ff003c]'
-            }`}>
-              Sec {currentSector}
+          <div>
+            <div className="text-[10px] uppercase tracking-widest text-[#00f3ff] font-bold display-font">Score</div>
+            <div className="display-font text-2xl font-black text-white text-glow-cyan leading-tight">
+              {score.toLocaleString()}
             </div>
           </div>
           <div className="border-t border-white/10 pt-1 mt-1">
