@@ -451,3 +451,59 @@ html, body, #root {
   50% { transform: none; animation-timing-function: cubic-bezier(0,0,0.2,1); }
 }
 .animate-bounce { animation: bounce 1.2s infinite; }
+
+/* Futuristic Neon Slider */
+.cyber-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 80px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 9999px;
+  outline: none;
+  border: 1px solid rgba(157, 0, 255, 0.25);
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.cyber-slider:hover {
+  background: rgba(255, 255, 255, 0.25);
+  border-color: rgba(0, 243, 255, 0.5);
+  box-shadow: 0 0 8px rgba(0, 243, 255, 0.2);
+}
+
+.cyber-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 12px;
+  width: 12px;
+  border-radius: 50%;
+  background: var(--neon-cyan);
+  cursor: pointer;
+  border: 2px solid #ffffff;
+  box-shadow: 0 0 6px var(--neon-cyan);
+  transition: transform 0.1s, background-color 0.2s, box-shadow 0.2s;
+}
+
+.cyber-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.25);
+  background: #ffffff;
+  box-shadow: 0 0 10px var(--neon-cyan), 0 0 4px #ffffff;
+}
+
+.cyber-slider::-moz-range-thumb {
+  height: 12px;
+  width: 12px;
+  border-radius: 50%;
+  background: var(--neon-cyan);
+  cursor: pointer;
+  border: 2px solid #ffffff;
+  box-shadow: 0 0 6px var(--neon-cyan);
+  transition: transform 0.1s, background-color 0.2s, box-shadow 0.2s;
+}
+
+.cyber-slider::-moz-range-thumb:hover {
+  transform: scale(1.25);
+  background: #ffffff;
+  box-shadow: 0 0 10px var(--neon-cyan), 0 0 4px #ffffff;
+}

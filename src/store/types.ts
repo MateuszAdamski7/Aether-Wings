@@ -124,9 +124,11 @@ export interface GarageSlice {
 
 export interface SettingsSlice {
   isMuted: boolean;
+  volume: number;
   graphicsQuality: 'HIGH' | 'LOW';
 
   toggleMute: () => void;
+  setVolume: (volume: number) => void;
   setGraphicsQuality: (quality: 'HIGH' | 'LOW') => void;
 }
 

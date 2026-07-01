@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useGameStore } from '../../store/useGameStore';
-import { Volume2, VolumeX, ShieldAlert, Shield, Award } from 'lucide-react';
+import { ShieldAlert, Shield, Award } from 'lucide-react';
 
 export default function GameHUD() {
   // Read state hooks
@@ -9,8 +9,6 @@ export default function GameHUD() {
   const speed = useGameStore((state) => state.speed);
   const maxSpeed = useGameStore((state) => state.maxSpeed);
   const crystalCount = useGameStore((state) => state.crystalCount);
-  const isMuted = useGameStore((state) => state.isMuted);
-  const toggleMute = useGameStore((state) => state.toggleMute);
   const controlMode = useGameStore((state) => state.controlMode);
   const collisionTriggered = useGameStore((state) => state.collisionTriggered);
   
@@ -78,7 +76,7 @@ export default function GameHUD() {
           </div>
         </div>
 
-        {/* Top-Right: Crystals, Boost & Volume */}
+        {/* Top-Right: Crystals & Boost */}
         <div className="flex gap-4 items-center">
           {/* Crystals Counter & Boost Charge */}
           <div className="glass-panel px-4 py-3 flex flex-col gap-2 border-glow-magenta pointer-events-auto">
@@ -114,15 +112,6 @@ export default function GameHUD() {
               </div>
             </div>
           </div>
-
-          {/* Mute button */}
-          <button
-            onClick={toggleMute}
-            className="p-3 glass-panel border-glow-purple text-white hover:text-cyan-400 transition-colors pointer-events-auto"
-            style={{ borderRadius: '10px' }}
-          >
-            {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
-          </button>
         </div>
       </div>
 

@@ -2,6 +2,7 @@ class AudioManager {
   private ctx: AudioContext | null = null;
   private isMuted: boolean = false;
   private isPlaying: boolean = false;
+  private volume: number = 0.8;
   
   // Music scheduling
   private schedulerTimer: number | null = null;
@@ -60,13 +61,20 @@ class AudioManager {
     // Initial volumes
     this.musicGain.gain.setValueAtTime(0.18, this.ctx.currentTime);
     this.sfxGain.gain.setValueAtTime(0.3, this.ctx.currentTime);
-    this.masterGain.gain.setValueAtTime(this.isMuted ? 0 : 1, this.ctx.currentTime);
+    this.masterGain.gain.setValueAtTime(this.isMuted ? 0 : this.volume, this.ctx.currentTime);
   }
 
   public setMute(muted: boolean) {
     this.isMuted = muted;
     if (this.masterGain && this.ctx) {
-      this.masterGain.gain.setValueAtTime(muted ? 0 : 1, this.ctx.currentTime);
+      this.masterGain.gain.setValueAtTime(muted ? 0 : this.volume, this.ctx.currentTime);
+    }
+  }
+
+  public setVolume(volume: number) {
+    this.volume = volume;
+    if (this.masterGain && this.ctx) {
+      this.masterGain.gain.setValueAtTime(this.isMuted ? 0 : volume, this.ctx.currentTime);
     }
   }
 

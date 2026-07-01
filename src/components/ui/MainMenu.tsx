@@ -197,6 +197,8 @@ export default function MainMenu() {
   const highScore = useGameStore((state) => state.highScore);
   const isMuted = useGameStore((state) => state.isMuted);
   const toggleMute = useGameStore((state) => state.toggleMute);
+  const volume = useGameStore((state) => state.volume);
+  const setVolume = useGameStore((state) => state.setVolume);
   const graphicsQuality = useGameStore((state) => state.graphicsQuality);
   const setGraphicsQuality = useGameStore((state) => state.setGraphicsQuality);
 
@@ -242,15 +244,41 @@ export default function MainMenu() {
           <Cpu size={16} className={graphicsQuality === 'HIGH' ? 'animate-pulse' : ''} />
         </button>
 
-        {/* Audio Mute Toggle */}
-        <button
-          onClick={toggleMute}
-          className="p-2.5 glass-panel border-glow-purple text-white hover:text-cyan-400 transition-colors pointer-events-auto flex items-center justify-center"
-          style={{ borderRadius: '50%', border: '1px solid rgba(157, 0, 255, 0.4)' }}
-          title={isMuted ? 'Unmute' : 'Mute'}
+        {/* Audio Mute & Volume Slider */}
+        <div 
+          className="flex items-center gap-2 glass-panel border-glow-purple p-1 pointer-events-auto"
+          style={{ 
+            borderRadius: '24px', 
+            border: '1px solid rgba(157, 0, 255, 0.4)',
+            paddingLeft: '10px',
+            paddingRight: '12px',
+            height: '42px',
+            boxShadow: '0 0 8px rgba(157, 0, 255, 0.25)'
+          }}
         >
-          {isMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
-        </button>
+          <button
+            onClick={toggleMute}
+            className="text-white hover:text-cyan-400 transition-colors flex items-center justify-center"
+            title={isMuted ? 'Unmute' : 'Mute'}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '6px' }}
+          >
+            {isMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
+          </button>
+          <input
+            type="range"
+            min="0"
+            max="1"
+            step="0.05"
+            value={isMuted ? 0 : volume}
+            onChange={(e) => {
+              const val = parseFloat(e.target.value);
+              setVolume(val);
+            }}
+            className="cyber-slider"
+            style={{ width: '85px' }}
+            title={`Volume: ${Math.round((isMuted ? 0 : volume) * 100)}%`}
+          />
+        </div>
       </div>
 
       {/* Main Panel */}
