@@ -2,13 +2,14 @@ import { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useGameStore } from '../../store/useGameStore';
+import { getSectorTransition, PALETTE } from '../../config/gameConfig';
 
 // Custom shader for the scrolling cyberpunk runway grid
 // Draws the roadbed, horizontal scrolling grid lines, and dashed lane dividers
 const TrackShader = {
   uniforms: {
     uPlayerZ: { value: 0 },
-    uThemeColor: { value: new THREE.Color('#9d00ff') } // Dynamic uniform
+    uThemeColor: { value: new THREE.Color(PALETTE.voidPurple) } // Dynamic uniform
   },
   vertexShader: `
     varying vec2 vUv;
@@ -73,45 +74,20 @@ export default function Track() {
   useFrame(() => {
     const { playerZ } = useGameStore.getState();
 
-    // Continuous color definitions
-    const s1Theme = new THREE.Color('#9d00ff'); // Violet
-    const s1Left = new THREE.Color('#00f3ff');  // Cyan
-    const s1Right = new THREE.Color('#ff007f'); // Hot Pink
+    const { currentSector, nextSector, t } = getSectorTransition(playerZ);
 
-    const s2Theme = new THREE.Color('#ff5500'); // Neon Orange
-    const s2Left = new THREE.Color('#39ff14');  // Acid Green
-    const s2Right = new THREE.Color('#ffe600'); // Solar Yellow
+    const targetTheme = new THREE.Color(currentSector.colors.trackTheme);
+    const targetLeft = new THREE.Color(currentSector.colors.trackRailLeft);
+    const targetRight = new THREE.Color(currentSector.colors.trackRailRight);
 
-    const s3Theme = new THREE.Color('#7a00ff'); // Indigo Purple
-    const s3Left = new THREE.Color('#ff0000');  // Crimson Red
-    const s3Right = new THREE.Color('#9d00ff'); // Nebula Violet
+    if (nextSector && t > 0) {
+      const nextTheme = new THREE.Color(nextSector.colors.trackTheme);
+      const nextLeft = new THREE.Color(nextSector.colors.trackRailLeft);
+      const nextRight = new THREE.Color(nextSector.colors.trackRailRight);
 
-    const targetTheme = new THREE.Color();
-    const targetLeft = new THREE.Color();
-    const targetRight = new THREE.Color();
-
-    if (playerZ < 1000) {
-      targetTheme.copy(s1Theme);
-      targetLeft.copy(s1Left);
-      targetRight.copy(s1Right);
-    } else if (playerZ < 1300) {
-      const t = (playerZ - 1000) / 300;
-      targetTheme.lerpColors(s1Theme, s2Theme, t);
-      targetLeft.lerpColors(s1Left, s2Left, t);
-      targetRight.lerpColors(s1Right, s2Right, t);
-    } else if (playerZ < 2600) {
-      targetTheme.copy(s2Theme);
-      targetLeft.copy(s2Left);
-      targetRight.copy(s2Right);
-    } else if (playerZ < 2900) {
-      const t = (playerZ - 2600) / 300;
-      targetTheme.lerpColors(s2Theme, s3Theme, t);
-      targetLeft.lerpColors(s2Left, s3Left, t);
-      targetRight.lerpColors(s2Right, s3Right, t);
-    } else {
-      targetTheme.copy(s3Theme);
-      targetLeft.copy(s3Left);
-      targetRight.copy(s3Right);
+      targetTheme.lerp(nextTheme, t);
+      targetLeft.lerp(nextLeft, t);
+      targetRight.lerp(nextRight, t);
     }
 
     if (materialRef.current) {
@@ -150,13 +126,13 @@ export default function Track() {
       {/* Left side rail */}
       <mesh position={[-3.6, -0.45, 0]} rotation={[0, 0, 0]}>
         <boxGeometry args={[0.1, 0.1, 350]} />
-        <meshBasicMaterial ref={leftRailMatRef} color="#00f3ff" />
+        <meshBasicMaterial ref={leftRailMatRef} color={PALETTE.neonCyan} />
       </mesh>
 
       {/* Right side rail */}
       <mesh position={[3.6, -0.45, 0]} rotation={[0, 0, 0]}>
         <boxGeometry args={[0.1, 0.1, 350]} />
-        <meshBasicMaterial ref={rightRailMatRef} color="#ff007f" />
+        <meshBasicMaterial ref={rightRailMatRef} color={PALETTE.hotPink} />
       </mesh>
     </group>
   );

@@ -1,3 +1,5 @@
+import { PALETTE } from './colors';
+
 export interface SectorConfig {
   id: number;
   name: string;
@@ -15,6 +17,9 @@ export interface SectorConfig {
     star2: string;
     mountainLeft: string;
     mountainRight: string;
+    trackTheme: string;
+    trackRailLeft: string;
+    trackRailRight: string;
   };
 }
 
@@ -27,15 +32,18 @@ export const SECTORS: SectorConfig[] = [
     hasSlidingObstacles: false,
     hasPulsingObstacles: false,
     colors: {
-      hazard: '#ff0055',
-      accent: '#ffe600',
-      skyBottom: '#ff8c00',
-      skyTop: '#ff0080',
-      fog: '#03030c',
-      star1: '#00f3ff',
-      star2: '#ff007f',
-      mountainLeft: '#00f3ff',
-      mountainRight: '#ff007f'
+      hazard: PALETTE.neonPink,
+      accent: PALETTE.neonYellow,
+      skyBottom: PALETTE.orange,
+      skyTop: PALETTE.skyPink,
+      fog: PALETTE.deepSpaceBg,
+      star1: PALETTE.neonCyan,
+      star2: PALETTE.hotPink,
+      mountainLeft: PALETTE.neonCyan,
+      mountainRight: PALETTE.hotPink,
+      trackTheme: PALETTE.voidPurple,
+      trackRailLeft: PALETTE.neonCyan,
+      trackRailRight: PALETTE.hotPink
     }
   },
   {
@@ -46,15 +54,18 @@ export const SECTORS: SectorConfig[] = [
     hasSlidingObstacles: true,
     hasPulsingObstacles: false,
     colors: {
-      hazard: '#ffaa00',
-      accent: '#39ff14',
-      skyBottom: '#ff5500',
-      skyTop: '#ffe600',
-      fog: '#011408',
-      star1: '#39ff14',
-      star2: '#ffe600',
-      mountainLeft: '#39ff14',
-      mountainRight: '#ffe600'
+      hazard: PALETTE.s2Hazard,
+      accent: PALETTE.neonGreen,
+      skyBottom: PALETTE.deepOrange,
+      skyTop: PALETTE.neonYellow,
+      fog: PALETTE.darkGreenBg,
+      star1: PALETTE.neonGreen,
+      star2: PALETTE.neonYellow,
+      mountainLeft: PALETTE.neonGreen,
+      mountainRight: PALETTE.neonYellow,
+      trackTheme: PALETTE.deepOrange,
+      trackRailLeft: PALETTE.neonGreen,
+      trackRailRight: PALETTE.neonYellow
     }
   },
   {
@@ -65,15 +76,18 @@ export const SECTORS: SectorConfig[] = [
     hasSlidingObstacles: true,
     hasPulsingObstacles: true,
     colors: {
-      hazard: '#9d00ff',
-      accent: '#ffe600',
-      skyBottom: '#7a00ff',
-      skyTop: '#ff003c',
-      fog: '#090214',
-      star1: '#ff0000',
-      star2: '#7a00ff',
-      mountainLeft: '#ff0000',
-      mountainRight: '#9d00ff'
+      hazard: PALETTE.voidPurple,
+      accent: PALETTE.neonYellow,
+      skyBottom: PALETTE.indigo,
+      skyTop: PALETTE.s3SkyTop,
+      fog: PALETTE.darkPurpleBg,
+      star1: PALETTE.crimsonRed,
+      star2: PALETTE.indigo,
+      mountainLeft: PALETTE.crimsonRed,
+      mountainRight: PALETTE.voidPurple,
+      trackTheme: PALETTE.indigo,
+      trackRailLeft: PALETTE.crimsonRed,
+      trackRailRight: PALETTE.voidPurple
     }
   }
 ];
