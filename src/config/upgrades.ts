@@ -1,16 +1,3 @@
-import type { LucideIcon } from 'lucide-react';
-import { 
-  Shield, 
-  Layers, 
-  ShieldAlert, 
-  Magnet, 
-  Sparkles, 
-  Coins, 
-  Gauge, 
-  Zap, 
-  Hourglass 
-} from 'lucide-react';
-
 export interface UpgradeNode {
   id: string;
   name: string;
@@ -19,7 +6,7 @@ export interface UpgradeNode {
   branch: 'DEFENSE' | 'HARVESTING' | 'ENGINE';
   tier: number;
   prerequisite: string | null;
-  icon: LucideIcon;
+  icon: string;
   effectLabel: string;
 }
 
@@ -33,7 +20,7 @@ export const UPGRADE_NODES: UpgradeNode[] = [
     branch: 'DEFENSE',
     tier: 1,
     prerequisite: null,
-    icon: Shield,
+    icon: 'Shield',
     effectLabel: 'Shield capacity: 1 hit'
   },
   {
@@ -44,7 +31,7 @@ export const UPGRADE_NODES: UpgradeNode[] = [
     branch: 'DEFENSE',
     tier: 2,
     prerequisite: 'defense_shield_1',
-    icon: Layers,
+    icon: 'Layers',
     effectLabel: 'Shield capacity: 2 hits'
   },
   {
@@ -55,7 +42,7 @@ export const UPGRADE_NODES: UpgradeNode[] = [
     branch: 'DEFENSE',
     tier: 3,
     prerequisite: 'defense_shield_2',
-    icon: ShieldAlert,
+    icon: 'ShieldAlert',
     effectLabel: 'Auto-regenerates shield (40s CD)'
   },
   // Branch 2: Harvesting
@@ -67,7 +54,7 @@ export const UPGRADE_NODES: UpgradeNode[] = [
     branch: 'HARVESTING',
     tier: 1,
     prerequisite: null,
-    icon: Magnet,
+    icon: 'Magnet',
     effectLabel: 'Magnet Range: 1.5m'
   },
   {
@@ -78,7 +65,7 @@ export const UPGRADE_NODES: UpgradeNode[] = [
     branch: 'HARVESTING',
     tier: 2,
     prerequisite: 'harvest_magnet_1',
-    icon: Sparkles,
+    icon: 'Sparkles',
     effectLabel: 'Magnet Range: 3.0m / Power-up +3s'
   },
   {
@@ -89,7 +76,7 @@ export const UPGRADE_NODES: UpgradeNode[] = [
     branch: 'HARVESTING',
     tier: 3,
     prerequisite: 'harvest_magnet_2',
-    icon: Coins,
+    icon: 'Coins',
     effectLabel: 'Draws crystals from all lanes'
   },
   // Branch 3: Performance
@@ -101,7 +88,7 @@ export const UPGRADE_NODES: UpgradeNode[] = [
     branch: 'ENGINE',
     tier: 1,
     prerequisite: null,
-    icon: Gauge,
+    icon: 'Gauge',
     effectLabel: 'Hyperboost Duration: 6.0s'
   },
   {
@@ -112,7 +99,7 @@ export const UPGRADE_NODES: UpgradeNode[] = [
     branch: 'ENGINE',
     tier: 2,
     prerequisite: 'engine_boost_1',
-    icon: Zap,
+    icon: 'Zap',
     effectLabel: 'Boost Charge Rate +20%'
   },
   {
@@ -123,7 +110,7 @@ export const UPGRADE_NODES: UpgradeNode[] = [
     branch: 'ENGINE',
     tier: 3,
     prerequisite: 'engine_boost_2',
-    icon: Hourglass,
+    icon: 'Hourglass',
     effectLabel: 'Slowmo +2s / Hyperboost Speed +10'
   }
 ];

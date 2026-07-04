@@ -2,10 +2,71 @@ import { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { useGameStore } from '../../store/useGameStore';
 import * as THREE from 'three';
+import { PALETTE } from '../../config/gameConfig';
+import { 
+  FuselageModel, 
+  CanopyModel, 
+  LeftWingModel, 
+  RightWingModel, 
+  NozzleModel 
+} from './ships/ShipParts';
+
+const getCanopyProps = (skinId: string) => {
+  switch (skinId) {
+    case 'vortex':
+      return {
+        position: [0, 0.14, 0.1] as [number, number, number],
+        geometry: new THREE.SphereGeometry(0.13, 16, 16)
+      };
+    case 'quantum':
+      return {
+        position: [0, 0.12, 0.25] as [number, number, number],
+        geometry: new THREE.BoxGeometry(0.26, 0.05, 0.2)
+      };
+    case 'temporal':
+      return {
+        position: [0, 0.09, 0.1] as [number, number, number],
+        geometry: new THREE.SphereGeometry(0.09, 12, 12)
+      };
+    case 'pink':
+      return {
+        position: [0, 0.1, 0.1] as [number, number, number],
+        geometry: new THREE.BoxGeometry(0.14, 0.08, 0.4)
+      };
+    case 'cyan':
+      return {
+        position: [0, 0.08, 0.0] as [number, number, number],
+        rotation: [Math.PI / 2, 0, 0] as [number, number, number],
+        geometry: new THREE.CylinderGeometry(0.07, 0.07, 0.5, 12)
+      };
+    case 'yellow':
+      return {
+        position: [0, 0.12, 0.1] as [number, number, number],
+        geometry: new THREE.BoxGeometry(0.14, 0.1, 0.32)
+      };
+    case 'green':
+      return {
+        position: [0, 0.09, 0.2] as [number, number, number],
+        geometry: new THREE.BoxGeometry(0.18, 0.03, 0.16)
+      };
+    case 'purple':
+      return {
+        position: [0, 0.1, 0.15] as [number, number, number],
+        geometry: new THREE.OctahedronGeometry(0.08),
+        scale: [1, 0.8, 1.8] as [number, number, number]
+      };
+    default:
+      return {
+        position: [0, 0.1, 0.1] as [number, number, number],
+        geometry: new THREE.BoxGeometry(0.16, 0.12, 0.5)
+      };
+  }
+};
+
 
 export default function Ship() {
   const meshRef = useRef<THREE.Group>(null);
-  const fuselageRef = useRef<THREE.Object3D>(null);
+  const fuselageRef = useRef<THREE.Group>(null);
   const canopyRef = useRef<THREE.Mesh>(null);
   const leftWingRef = useRef<THREE.Group>(null);
   const rightWingRef = useRef<THREE.Group>(null);
@@ -266,7 +327,7 @@ export default function Ship() {
       lastCount.current = crystalCount;
       // Find the crystal that was collected around this position
       const collectedCrystal = crystals.find(c => c.collected && Math.abs(c.z - playerZ) < 6.0);
-      pendingAbsorbColor.current = collectedCrystal ? collectedCrystal.color : '#00f3ff';
+      pendingAbsorbColor.current = collectedCrystal ? collectedCrystal.color : PALETTE.neonCyan;
       absorbDelay.current = 0.26; // Wait for the homing crystal to arrive at the ship
     }
 
@@ -320,12 +381,12 @@ export default function Ship() {
         if (boostActive && !collisionTriggered) {
           // Glow intense gold/orange during boost
           mat.emissiveIntensity = 2.5;
-          mat.emissive.setStyle("#ffe600");
+          mat.emissive.setStyle(PALETTE.neonYellow);
         } else if (boostCharge === 10 && !collisionTriggered) {
           // Pulsate gold when boost is charged and ready to launch
           const pulse = Math.sin(state.clock.getElapsedTime() * 12) * 0.5 + 0.5;
           mat.emissiveIntensity = 0.6 + pulse * 1.5;
-          mat.emissive.setStyle(pulse > 0.5 ? "#ffe600" : "#00f3ff");
+          mat.emissive.setStyle(pulse > 0.5 ? PALETTE.neonYellow : PALETTE.neonCyan);
         } else if (absorbTime.current > 0 && !collisionTriggered) {
           // Normal crystal absorb flash
           const progress = absorbTime.current / 0.25;
@@ -334,7 +395,7 @@ export default function Ship() {
         } else {
           // Default state
           mat.emissiveIntensity = 0.6;
-          mat.emissive.setStyle("#00f3ff");
+          mat.emissive.setStyle(PALETTE.neonCyan);
         }
       }
     }
@@ -369,13 +430,15 @@ export default function Ship() {
     }
   });
 
+  const canopyProps = getCanopyProps(equippedSkin);
+
   return (
     <group ref={meshRef} position={[0, 0, 0]}>
       {/* Sonic Blast Wave Sphere */}
       <mesh ref={blastMeshRef}>
         <sphereGeometry args={[1, 16, 16]} />
         <meshBasicMaterial 
-          color="#ffe600" 
+          color={PALETTE.neonYellow} 
           transparent={true} 
           opacity={0} 
           wireframe={true} 
@@ -452,566 +515,44 @@ export default function Ship() {
           {/* Outer glowing wireframe dodecahedron */}
           <mesh>
             <dodecahedronGeometry args={[0.22, 0]} />
-            <meshBasicMaterial color="#00f3ff" wireframe={true} transparent={true} opacity={0.8} />
+            <meshBasicMaterial color={PALETTE.neonCyan} wireframe={true} transparent={true} opacity={0.8} />
           </mesh>
           {/* Inner solid glowing core */}
           <mesh>
             <sphereGeometry args={[0.09, 8, 8]} />
-            <meshStandardMaterial color="#ffffff" emissive="#ff00ff" emissiveIntensity={2.5} />
+            <meshStandardMaterial color={PALETTE.white} emissive={PALETTE.magenta} emissiveIntensity={2.5} />
           </mesh>
           {/* Little energy ring */}
           <mesh rotation={[Math.PI / 2, 0, 0]}>
             <torusGeometry args={[0.25, 0.02, 6, 16]} />
-            <meshBasicMaterial color="#ff00ff" transparent={true} opacity={0.6} />
+            <meshBasicMaterial color={PALETTE.magenta} transparent={true} opacity={0.6} />
           </mesh>
         </group>
       )}
 
       {/* 1. Fuselage */}
-      {equippedSkin === 'vortex' ? (
-        <group ref={fuselageRef}>
-          {/* Vortex Singelage: Sleek chrome needle core */}
-          <mesh castShadow>
-            <cylinderGeometry args={[0.04, 0.04, 1.8, 8]} />
-            <meshStandardMaterial color="#eeeeee" roughness={0.1} metalness={0.9} flatShading={true} />
-          </mesh>
-          <mesh position={[0, -0.2, 0]}>
-            <cylinderGeometry args={[0.16, 0.16, 0.5, 6]} />
-            <meshBasicMaterial color="#ff00ff" wireframe={true} />
-          </mesh>
-        </group>
-      ) : equippedSkin === 'quantum' ? (
-        <group ref={fuselageRef}>
-          {/* Quantum Heavy Blocky Visor Fuselage */}
-          <mesh castShadow>
-            <boxGeometry args={[0.42, 0.22, 1.4]} />
-            <meshStandardMaterial color="#1a1a24" roughness={0.85} metalness={0.15} flatShading={true} />
-          </mesh>
-          <mesh>
-            <boxGeometry args={[0.43, 0.23, 1.42]} />
-            <meshBasicMaterial color="#00ffff" wireframe={true} transparent={true} opacity={0.25} />
-          </mesh>
-        </group>
-      ) : equippedSkin === 'temporal' ? (
-        <group ref={fuselageRef}>
-          {/* Temporal Twin-needle Nose & Frame */}
-          <mesh position={[-0.1, 0, 0.4]} castShadow>
-            <coneGeometry args={[0.05, 1.1, 6]} />
-            <meshStandardMaterial color="#d4af37" roughness={0.15} metalness={0.9} flatShading={true} />
-          </mesh>
-          <mesh position={[0.1, 0, 0.4]} castShadow>
-            <coneGeometry args={[0.05, 1.1, 6]} />
-            <meshStandardMaterial color="#d4af37" roughness={0.15} metalness={0.9} flatShading={true} />
-          </mesh>
-          <mesh castShadow>
-            <boxGeometry args={[0.22, 0.12, 0.8]} />
-            <meshStandardMaterial color="#554411" roughness={0.3} metalness={0.8} flatShading={true} />
-          </mesh>
-        </group>
-      ) : equippedSkin === 'pink' ? (
-        <group ref={fuselageRef}>
-          {/* Laser Pink wedge hull */}
-          <mesh castShadow>
-            <coneGeometry args={[0.26, 1.5, 4]} />
-            <meshStandardMaterial color="#ddccd7" roughness={0.15} metalness={0.95} flatShading={true} />
-          </mesh>
-          <mesh position={[0, 0.05, 0.1]}>
-            <boxGeometry args={[0.08, 0.04, 0.8]} />
-            <meshStandardMaterial color="#ff0055" emissive="#ff0055" emissiveIntensity={0.8} />
-          </mesh>
-        </group>
-      ) : equippedSkin === 'cyan' ? (
-        <group ref={fuselageRef}>
-          {/* Cyan Flare Split Racer Nose */}
-          <mesh position={[-0.09, 0, 0.1]} castShadow>
-            <coneGeometry args={[0.07, 1.4, 5]} />
-            <meshStandardMaterial color="#1a3545" roughness={0.1} metalness={0.85} flatShading={true} />
-          </mesh>
-          <mesh position={[0.09, 0, 0.1]} castShadow>
-            <coneGeometry args={[0.07, 1.4, 5]} />
-            <meshStandardMaterial color="#1a3545" roughness={0.1} metalness={0.85} flatShading={true} />
-          </mesh>
-          <mesh position={[0, -0.04, -0.2]} castShadow>
-            <boxGeometry args={[0.22, 0.08, 0.6]} />
-            <meshStandardMaterial color="#0c1b24" roughness={0.3} metalness={0.7} />
-          </mesh>
-          <mesh position={[0, 0.02, 0]}>
-            <boxGeometry args={[0.05, 0.02, 0.9]} />
-            <meshStandardMaterial color="#00f3ff" emissive="#00f3ff" emissiveIntensity={1.0} />
-          </mesh>
-        </group>
-      ) : equippedSkin === 'yellow' ? (
-        <group ref={fuselageRef}>
-          {/* Solar Yellow Hexagonal Body */}
-          <mesh castShadow rotation={[Math.PI / 2, 0, 0]}>
-            <cylinderGeometry args={[0.15, 0.2, 1.4, 6]} />
-            <meshStandardMaterial color="#ffe600" roughness={0.3} metalness={0.5} flatShading={true} />
-          </mesh>
-          <mesh position={[0, 0.08, -0.1]} castShadow>
-            <boxGeometry args={[0.22, 0.08, 0.9]} />
-            <meshStandardMaterial color="#1a1813" roughness={0.7} metalness={0.3} />
-          </mesh>
-        </group>
-      ) : equippedSkin === 'green' ? (
-        <group ref={fuselageRef}>
-          {/* Acid Green Organic shell carapace */}
-          <mesh castShadow>
-            <sphereGeometry args={[0.22, 8, 8]} scale={[1, 0.6, 2.8]} />
-            <meshStandardMaterial color="#1b2a1a" roughness={0.75} metalness={0.1} flatShading={true} />
-          </mesh>
-          <mesh position={[0, 0.06, 0.4]}>
-            <sphereGeometry args={[0.05, 5, 5]} />
-            <meshStandardMaterial color="#39ff14" emissive="#39ff14" emissiveIntensity={1.5} />
-          </mesh>
-          <mesh position={[0, 0.06, -0.4]}>
-            <sphereGeometry args={[0.05, 5, 5]} />
-            <meshStandardMaterial color="#39ff14" emissive="#39ff14" emissiveIntensity={1.5} />
-          </mesh>
-        </group>
-      ) : equippedSkin === 'purple' ? (
-        <group ref={fuselageRef}>
-          {/* Nebula Violet Diamond Hull */}
-          <mesh castShadow>
-            <octahedronGeometry args={[0.22]} scale={[1, 0.8, 3.8]} />
-            <meshStandardMaterial color="#130a1c" roughness={0.05} metalness={0.95} flatShading={true} />
-          </mesh>
-          <mesh position={[0, 0.06, 0]}>
-            <boxGeometry args={[0.02, 0.02, 1.2]} />
-            <meshStandardMaterial color="#9d00ff" emissive="#9d00ff" emissiveIntensity={1.2} />
-          </mesh>
-        </group>
-      ) : (
-        /* Fallback Fuselage */
-        <mesh ref={fuselageRef} castShadow>
-          <coneGeometry args={[0.3, 1.6, 5]} />
-          <meshStandardMaterial 
-            color="#121225" 
-            roughness={0.2}
-            metalness={0.8}
-            flatShading={true}
-          />
-        </mesh>
-      )}
+      <group ref={fuselageRef}>
+        <FuselageModel skinId={equippedSkin} />
+      </group>
 
       {/* 2. Cockpit Canopy */}
-      {equippedSkin === 'vortex' ? (
-        <mesh ref={canopyRef} position={[0, 0.14, 0.1]}>
-          <sphereGeometry args={[0.13, 16, 16]} />
-          <meshStandardMaterial color="#ffffff" emissive="#ff00ff" emissiveIntensity={1.2} transparent={true} opacity={0.65} />
-        </mesh>
-      ) : equippedSkin === 'quantum' ? (
-        <mesh ref={canopyRef} position={[0, 0.12, 0.25]}>
-          <boxGeometry args={[0.26, 0.05, 0.2]} />
-          <meshStandardMaterial color="#ff0000" emissive="#ff0000" emissiveIntensity={1.8} />
-        </mesh>
-      ) : equippedSkin === 'temporal' ? (
-        <mesh ref={canopyRef} position={[0, 0.09, 0.1]}>
-          <sphereGeometry args={[0.09, 12, 12]} />
-          <meshStandardMaterial color="#ffaa00" emissive="#ffaa00" emissiveIntensity={1.0} transparent={true} opacity={0.7} />
-        </mesh>
-      ) : equippedSkin === 'pink' ? (
-        <mesh ref={canopyRef} position={[0, 0.1, 0.1]}>
-          <boxGeometry args={[0.14, 0.08, 0.4]} />
-          <meshStandardMaterial color="#ff0055" emissive="#ff0055" emissiveIntensity={1.2} transparent={true} opacity={0.7} />
-        </mesh>
-      ) : equippedSkin === 'cyan' ? (
-        <mesh ref={canopyRef} position={[0, 0.08, 0.0]} rotation={[Math.PI / 2, 0, 0]}>
-          <cylinderGeometry args={[0.07, 0.07, 0.5, 12]} />
-          <meshStandardMaterial color="#00f3ff" emissive="#00f3ff" emissiveIntensity={1.5} transparent={true} opacity={0.75} />
-        </mesh>
-      ) : equippedSkin === 'yellow' ? (
-        <mesh ref={canopyRef} position={[0, 0.12, 0.1]}>
-          <boxGeometry args={[0.14, 0.1, 0.32]} />
-          <meshStandardMaterial color="#ffaa00" emissive="#ffe600" emissiveIntensity={0.8} transparent={true} opacity={0.7} />
-        </mesh>
-      ) : equippedSkin === 'green' ? (
-        <mesh ref={canopyRef} position={[0, 0.09, 0.2]}>
-          <boxGeometry args={[0.18, 0.03, 0.16]} />
-          <meshStandardMaterial color="#39ff14" emissive="#39ff14" emissiveIntensity={2.0} />
-        </mesh>
-      ) : equippedSkin === 'purple' ? (
-        <mesh ref={canopyRef} position={[0, 0.1, 0.15]}>
-          <octahedronGeometry args={[0.08]} scale={[1, 0.8, 1.8]} />
-          <meshStandardMaterial color="#9d00ff" emissive="#9d00ff" emissiveIntensity={1.6} transparent={true} opacity={0.6} />
-        </mesh>
-      ) : (
-        /* Fallback Canopy */
-        <mesh ref={canopyRef} position={[0, 0.1, 0.1]}>
-          <boxGeometry args={[0.16, 0.12, 0.5]} />
-          <meshStandardMaterial 
-            color="#00f3ff" 
-            emissive="#00f3ff" 
-            emissiveIntensity={0.6}
-            transparent={true}
-            opacity={0.8}
-          />
-        </mesh>
-      )}
+      <mesh ref={canopyRef} {...canopyProps}>
+        <CanopyModel skinId={equippedSkin} />
+      </mesh>
 
       {/* 3. Left Wing */}
-      {equippedSkin === 'vortex' ? (
-        <group ref={leftWingRef} position={[-0.45, -0.05, -0.1]} rotation={[0, -0.1, 0.25]}>
-          {/* Vortex Split Orbital Disc Wing (Left Half) */}
-          <mesh rotation={[0, 0, 0]} castShadow>
-            <torusGeometry args={[0.62, 0.026, 8, 32, Math.PI]} />
-            <meshStandardMaterial color="#eeeeee" roughness={0.1} metalness={0.9} />
-          </mesh>
-          <mesh rotation={[0, 0, 0]}>
-            <torusGeometry args={[0.64, 0.01, 4, 32, Math.PI]} />
-            <meshBasicMaterial color="#ff00ff" />
-          </mesh>
-        </group>
-      ) : equippedSkin === 'quantum' ? (
-        <group ref={leftWingRef} position={[-0.45, -0.05, -0.1]} rotation={[0, -0.1, 0.25]}>
-          {/* Quantum Heavy Forward swept Wing */}
-          <mesh rotation={[0, 0.35, 0]} castShadow>
-            <boxGeometry args={[0.75, 0.06, 0.38]} />
-            <meshStandardMaterial color="#1e1e2d" roughness={0.8} metalness={0.2} flatShading={true} />
-          </mesh>
-          <group position={[-0.42, 0.04, 0.1]}>
-            <mesh castShadow>
-              <boxGeometry args={[0.08, 0.24, 0.26]} />
-              <meshStandardMaterial color="#0c0c14" roughness={0.5} />
-            </mesh>
-            <mesh>
-              <boxGeometry args={[0.09, 0.26, 0.28]} />
-              <meshBasicMaterial color="#00ffff" wireframe={true} />
-            </mesh>
-          </group>
-        </group>
-      ) : equippedSkin === 'temporal' ? (
-        <group ref={leftWingRef} position={[-0.45, -0.05, -0.1]} rotation={[0, -0.1, 0.25]}>
-          {/* Temporal Chrono Wing & Spinning Ring */}
-          <mesh castShadow>
-            <boxGeometry args={[0.85, 0.03, 0.2]} />
-            <meshStandardMaterial color="#d4af37" roughness={0.15} metalness={0.9} flatShading={true} />
-          </mesh>
-          <group position={[-0.42, 0.05, 0.0]}>
-            <mesh ref={leftChronoRingRef}>
-              <torusGeometry args={[0.18, 0.025, 6, 16]} />
-              <meshBasicMaterial color="#ffe600" transparent={true} opacity={0.8} wireframe={true} />
-            </mesh>
-            <mesh>
-              <sphereGeometry args={[0.05, 6, 6]} />
-              <meshStandardMaterial color="#333" metalness={0.9} />
-            </mesh>
-          </group>
-        </group>
-      ) : equippedSkin === 'pink' ? (
-        <group ref={leftWingRef} position={[-0.45, -0.05, -0.1]} rotation={[0, -0.1, 0.25]}>
-          {/* Laser Pink Left Wing */}
-          <mesh castShadow>
-            <boxGeometry args={[0.75, 0.04, 0.4]} />
-            <meshStandardMaterial color="#2d1a2f" roughness={0.2} metalness={0.8} flatShading={true} />
-          </mesh>
-          <mesh position={[-0.38, 0, 0.05]}>
-            <boxGeometry args={[0.03, 0.06, 0.42]} />
-            <meshBasicMaterial color="#ff0055" />
-          </mesh>
-        </group>
-      ) : equippedSkin === 'cyan' ? (
-        <group ref={leftWingRef} position={[-0.45, -0.05, -0.1]} rotation={[0, -0.1, 0.25]}>
-          {/* Cyan Flare Left Wing */}
-          <mesh castShadow>
-            <boxGeometry args={[0.8, 0.03, 0.3]} />
-            <meshStandardMaterial color="#1a3545" roughness={0.1} metalness={0.85} flatShading={true} />
-          </mesh>
-          <mesh position={[-0.1, 0.02, 0]}>
-            <boxGeometry args={[0.5, 0.01, 0.06]} />
-            <meshBasicMaterial color="#00f3ff" />
-          </mesh>
-          <mesh position={[-0.4, 0, -0.05]} rotation={[Math.PI / 2, 0.2, 0]}>
-            <coneGeometry args={[0.04, 0.3, 4]} />
-            <meshStandardMaterial color="#00f3ff" emissive="#00f3ff" emissiveIntensity={0.8} />
-          </mesh>
-        </group>
-      ) : equippedSkin === 'yellow' ? (
-        <group ref={leftWingRef} position={[-0.45, -0.05, -0.1]} rotation={[0, -0.1, 0.25]}>
-          {/* Solar Yellow Left Wing solar panel */}
-          <mesh castShadow>
-            <boxGeometry args={[0.75, 0.06, 0.45]} />
-            <meshStandardMaterial color="#1a1813" roughness={0.85} metalness={0.1} />
-          </mesh>
-          <mesh position={[-0.1, 0.04, 0]}>
-            <boxGeometry args={[0.42, 0.01, 0.38]} />
-            <meshStandardMaterial color="#ffe600" roughness={0.2} metalness={0.9} flatShading={true} />
-          </mesh>
-          <mesh position={[-0.38, 0.02, 0]}>
-            <boxGeometry args={[0.04, 0.08, 0.46]} />
-            <meshStandardMaterial color="#ffe600" emissive="#ffe600" emissiveIntensity={1.0} />
-          </mesh>
-        </group>
-      ) : equippedSkin === 'green' ? (
-        <group ref={leftWingRef} position={[-0.45, -0.05, -0.1]} rotation={[0, -0.1, 0.25]}>
-          {/* Acid Green Organic left claw wing */}
-          <mesh castShadow rotation={[Math.PI / 2, 0, Math.PI / 2]}>
-            <coneGeometry args={[0.1, 0.8, 3]} />
-            <meshStandardMaterial color="#111d11" roughness={0.8} metalness={0.05} flatShading={true} />
-          </mesh>
-          <mesh position={[-0.1, 0, 0.05]}>
-            <boxGeometry args={[0.4, 0.01, 0.04]} />
-            <meshBasicMaterial color="#39ff14" />
-          </mesh>
-          <mesh position={[-0.4, 0, -0.1]} rotation={[0, 0.5, 0]}>
-            <coneGeometry args={[0.03, 0.35, 3]} />
-            <meshStandardMaterial color="#39ff14" emissive="#39ff14" emissiveIntensity={1.0} />
-          </mesh>
-        </group>
-      ) : equippedSkin === 'purple' ? (
-        <group ref={leftWingRef} position={[-0.45, -0.05, -0.1]} rotation={[0, -0.1, 0.25]}>
-          {/* Nebula Violet Left Wing with gravity-well */}
-          <mesh castShadow>
-            <boxGeometry args={[0.8, 0.02, 0.36]} />
-            <meshStandardMaterial color="#130a1c" roughness={0.1} metalness={0.9} flatShading={true} />
-          </mesh>
-          <group position={[-0.38, 0, 0]} rotation={[Math.PI / 2, 0, 0]}>
-            <mesh>
-              <torusGeometry args={[0.12, 0.015, 6, 12]} />
-              <meshBasicMaterial color="#9d00ff" wireframe={true} />
-            </mesh>
-            <mesh>
-              <sphereGeometry args={[0.03, 6, 6]} />
-              <meshStandardMaterial color="#ffffff" emissive="#9d00ff" emissiveIntensity={2.0} />
-            </mesh>
-          </group>
-        </group>
-      ) : (
-        /* Fallback Left Wing */
-        <group ref={leftWingRef} position={[-0.45, -0.05, -0.1]} rotation={[0, -0.1, 0.25]}>
-          <mesh castShadow>
-            <boxGeometry args={[0.8, 0.05, 0.5]} />
-            <meshStandardMaterial 
-              color="#1d1d35" 
-              roughness={0.3} 
-              metalness={0.7} 
-              flatShading={true}
-            />
-          </mesh>
-          <mesh position={[-0.4, 0.0, 0]}>
-            <boxGeometry args={[0.04, 0.08, 0.52]} />
-            <meshBasicMaterial color="#00f3ff" />
-          </mesh>
-        </group>
-      )}
+      <group ref={leftWingRef} position={[-0.45, -0.05, -0.1]} rotation={[0, -0.1, 0.25]}>
+        <LeftWingModel skinId={equippedSkin} leftChronoRingRef={leftChronoRingRef} />
+      </group>
 
       {/* 4. Right Wing */}
-      {equippedSkin === 'vortex' ? (
-        <group ref={rightWingRef} position={[0.45, -0.05, -0.1]} rotation={[0, 0.1, -0.25]}>
-          {/* Vortex Split Orbital Disc Wing (Right Half) */}
-          <mesh rotation={[0, 0, Math.PI]} castShadow>
-            <torusGeometry args={[0.62, 0.026, 8, 32, Math.PI]} />
-            <meshStandardMaterial color="#eeeeee" roughness={0.1} metalness={0.9} />
-          </mesh>
-          <mesh rotation={[0, 0, Math.PI]}>
-            <torusGeometry args={[0.64, 0.01, 4, 32, Math.PI]} />
-            <meshBasicMaterial color="#ff00ff" />
-          </mesh>
-        </group>
-      ) : equippedSkin === 'quantum' ? (
-        <group ref={rightWingRef} position={[0.45, -0.05, -0.1]} rotation={[0, 0.1, -0.25]}>
-          {/* Quantum Heavy Forward swept Wing */}
-          <mesh rotation={[0, -0.35, 0]} castShadow>
-            <boxGeometry args={[0.75, 0.06, 0.38]} />
-            <meshStandardMaterial color="#1e1e2d" roughness={0.8} metalness={0.2} flatShading={true} />
-          </mesh>
-          <group position={[0.42, 0.04, 0.1]}>
-            <mesh castShadow>
-              <boxGeometry args={[0.08, 0.24, 0.26]} />
-              <meshStandardMaterial color="#0c0c14" roughness={0.5} />
-            </mesh>
-            <mesh>
-              <boxGeometry args={[0.09, 0.26, 0.28]} />
-              <meshBasicMaterial color="#00ffff" wireframe={true} />
-            </mesh>
-          </group>
-        </group>
-      ) : equippedSkin === 'temporal' ? (
-        <group ref={rightWingRef} position={[0.45, -0.05, -0.1]} rotation={[0, 0.1, -0.25]}>
-          {/* Temporal Chrono Wing & Spinning Ring */}
-          <mesh castShadow>
-            <boxGeometry args={[0.85, 0.03, 0.2]} />
-            <meshStandardMaterial color="#d4af37" roughness={0.15} metalness={0.9} flatShading={true} />
-          </mesh>
-          <group position={[0.42, 0.05, 0.0]}>
-            <mesh ref={rightChronoRingRef}>
-              <torusGeometry args={[0.18, 0.025, 6, 16]} />
-              <meshBasicMaterial color="#ffe600" transparent={true} opacity={0.8} wireframe={true} />
-            </mesh>
-            <mesh>
-              <sphereGeometry args={[0.05, 6, 6]} />
-              <meshStandardMaterial color="#333" metalness={0.9} />
-            </mesh>
-          </group>
-        </group>
-      ) : equippedSkin === 'pink' ? (
-        <group ref={rightWingRef} position={[0.45, -0.05, -0.1]} rotation={[0, 0.1, -0.25]}>
-          {/* Laser Pink Right Wing */}
-          <mesh castShadow>
-            <boxGeometry args={[0.75, 0.04, 0.4]} />
-            <meshStandardMaterial color="#2d1a2f" roughness={0.2} metalness={0.8} flatShading={true} />
-          </mesh>
-          <mesh position={[0.38, 0, 0.05]}>
-            <boxGeometry args={[0.03, 0.06, 0.42]} />
-            <meshBasicMaterial color="#ff0055" />
-          </mesh>
-        </group>
-      ) : equippedSkin === 'cyan' ? (
-        <group ref={rightWingRef} position={[0.45, -0.05, -0.1]} rotation={[0, 0.1, -0.25]}>
-          {/* Cyan Flare Right Wing */}
-          <mesh castShadow>
-            <boxGeometry args={[0.8, 0.03, 0.3]} />
-            <meshStandardMaterial color="#1a3545" roughness={0.1} metalness={0.85} flatShading={true} />
-          </mesh>
-          <mesh position={[0.1, 0.02, 0]}>
-            <boxGeometry args={[0.5, 0.01, 0.06]} />
-            <meshBasicMaterial color="#00f3ff" />
-          </mesh>
-          <mesh position={[0.4, 0, -0.05]} rotation={[Math.PI / 2, -0.2, 0]}>
-            <coneGeometry args={[0.04, 0.3, 4]} />
-            <meshStandardMaterial color="#00f3ff" emissive="#00f3ff" emissiveIntensity={0.8} />
-          </mesh>
-        </group>
-      ) : equippedSkin === 'yellow' ? (
-        <group ref={rightWingRef} position={[0.45, -0.05, -0.1]} rotation={[0, 0.1, -0.25]}>
-          {/* Solar Yellow Right Wing solar panel */}
-          <mesh castShadow>
-            <boxGeometry args={[0.75, 0.06, 0.45]} />
-            <meshStandardMaterial color="#1a1813" roughness={0.85} metalness={0.1} />
-          </mesh>
-          <mesh position={[0.1, 0.04, 0]}>
-            <boxGeometry args={[0.42, 0.01, 0.38]} />
-            <meshStandardMaterial color="#ffe600" roughness={0.2} metalness={0.9} flatShading={true} />
-          </mesh>
-          <mesh position={[0.38, 0.02, 0]}>
-            <boxGeometry args={[0.04, 0.08, 0.46]} />
-            <meshStandardMaterial color="#ffe600" emissive="#ffe600" emissiveIntensity={1.0} />
-          </mesh>
-        </group>
-      ) : equippedSkin === 'green' ? (
-        <group ref={rightWingRef} position={[0.45, -0.05, -0.1]} rotation={[0, 0.1, -0.25]}>
-          {/* Acid Green Organic right claw wing */}
-          <mesh castShadow rotation={[Math.PI / 2, 0, -Math.PI / 2]}>
-            <coneGeometry args={[0.1, 0.8, 3]} />
-            <meshStandardMaterial color="#111d11" roughness={0.8} metalness={0.05} flatShading={true} />
-          </mesh>
-          <mesh position={[0.1, 0, 0.05]}>
-            <boxGeometry args={[0.4, 0.01, 0.04]} />
-            <meshBasicMaterial color="#39ff14" />
-          </mesh>
-          <mesh position={[0.4, 0, -0.1]} rotation={[0, -0.5, 0]}>
-            <coneGeometry args={[0.03, 0.35, 3]} />
-            <meshStandardMaterial color="#39ff14" emissive="#39ff14" emissiveIntensity={1.0} />
-          </mesh>
-        </group>
-      ) : equippedSkin === 'purple' ? (
-        <group ref={rightWingRef} position={[0.45, -0.05, -0.1]} rotation={[0, 0.1, -0.25]}>
-          {/* Nebula Violet Right Wing with gravity-well */}
-          <mesh castShadow>
-            <boxGeometry args={[0.8, 0.02, 0.36]} />
-            <meshStandardMaterial color="#130a1c" roughness={0.1} metalness={0.9} flatShading={true} />
-          </mesh>
-          <group position={[0.38, 0, 0]} rotation={[Math.PI / 2, 0, 0]}>
-            <mesh>
-              <torusGeometry args={[0.12, 0.015, 6, 12]} />
-              <meshBasicMaterial color="#9d00ff" wireframe={true} />
-            </mesh>
-            <mesh>
-              <sphereGeometry args={[0.03, 6, 6]} />
-              <meshStandardMaterial color="#ffffff" emissive="#9d00ff" emissiveIntensity={2.0} />
-            </mesh>
-          </group>
-        </group>
-      ) : (
-        /* Fallback Right Wing */
-        <group ref={rightWingRef} position={[0.45, -0.05, -0.1]} rotation={[0, 0.1, -0.25]}>
-          <mesh castShadow>
-            <boxGeometry args={[0.8, 0.05, 0.5]} />
-            <meshStandardMaterial 
-              color="#1d1d35" 
-              roughness={0.3} 
-              metalness={0.7} 
-              flatShading={true}
-            />
-          </mesh>
-          <mesh position={[0.4, 0.0, 0]}>
-            <boxGeometry args={[0.04, 0.08, 0.52]} />
-            <meshBasicMaterial color="#ff007f" />
-          </mesh>
-        </group>
-      )}
+      <group ref={rightWingRef} position={[0.45, -0.05, -0.1]} rotation={[0, 0.1, -0.25]}>
+        <RightWingModel skinId={equippedSkin} rightChronoRingRef={rightChronoRingRef} />
+      </group>
 
       {/* 5. Engine Thrusters & Exhaust Glow */}
       <group ref={nozzleRef} position={[0, -0.05, -0.85]} rotation={[Math.PI / 2, 0, 0]}>
-        {/* Metal Engine Nozzle customized for each skin */}
-        {equippedSkin === 'vortex' ? (
-          <mesh>
-            <cylinderGeometry args={[0.06, 0.1, 0.2, 8]} />
-            <meshStandardMaterial color="#eeeeee" roughness={0.1} metalness={0.9} />
-          </mesh>
-        ) : equippedSkin === 'quantum' ? (
-          <group>
-            {/* Double square exhaust ports */}
-            <mesh position={[-0.08, 0, 0]}>
-              <boxGeometry args={[0.1, 0.12, 0.2]} />
-              <meshStandardMaterial color="#2d2d3d" roughness={0.7} metalness={0.3} />
-            </mesh>
-            <mesh position={[0.08, 0, 0]}>
-              <boxGeometry args={[0.1, 0.12, 0.2]} />
-              <meshStandardMaterial color="#2d2d3d" roughness={0.7} metalness={0.3} />
-            </mesh>
-          </group>
-        ) : equippedSkin === 'temporal' ? (
-          <mesh rotation={[Math.PI, 0, 0]}>
-            <coneGeometry args={[0.08, 0.25, 6]} />
-            <meshStandardMaterial color="#d4af37" roughness={0.2} metalness={0.8} />
-          </mesh>
-        ) : equippedSkin === 'cyan' ? (
-          <group>
-            {/* Triple circular thrusters */}
-            <mesh position={[-0.08, 0, -0.02]}>
-              <cylinderGeometry args={[0.04, 0.06, 0.2, 6]} />
-              <meshStandardMaterial color="#152e3c" metalness={0.8} />
-            </mesh>
-            <mesh position={[0, 0, 0.02]}>
-              <cylinderGeometry args={[0.05, 0.07, 0.2, 6]} />
-              <meshStandardMaterial color="#152e3c" metalness={0.8} />
-            </mesh>
-            <mesh position={[0.08, 0, -0.02]}>
-              <cylinderGeometry args={[0.04, 0.06, 0.2, 6]} />
-              <meshStandardMaterial color="#152e3c" metalness={0.8} />
-            </mesh>
-          </group>
-        ) : equippedSkin === 'yellow' ? (
-          <mesh>
-            <boxGeometry args={[0.2, 0.2, 0.18]} />
-            <meshStandardMaterial color="#332b11" roughness={0.4} metalness={0.6} />
-          </mesh>
-        ) : equippedSkin === 'green' ? (
-          <mesh>
-            <sphereGeometry args={[0.12, 8, 8]} />
-            <meshStandardMaterial color="#1b2a1a" roughness={0.9} />
-          </mesh>
-        ) : equippedSkin === 'purple' ? (
-          <group>
-            {/* Twin round exhaust ports */}
-            <mesh position={[-0.06, 0, 0]}>
-              <cylinderGeometry args={[0.05, 0.05, 0.22, 6]} />
-              <meshStandardMaterial color="#1c122c" metalness={0.9} />
-            </mesh>
-            <mesh position={[0.06, 0, 0]}>
-              <cylinderGeometry args={[0.05, 0.05, 0.22, 6]} />
-              <meshStandardMaterial color="#1c122c" metalness={0.9} />
-            </mesh>
-          </group>
-        ) : (
-          /* Laser Pink / Default single circular thruster */
-          <mesh>
-            <cylinderGeometry args={[0.12, 0.15, 0.25, 6]} />
-            <meshStandardMaterial color="#2d1a2f" metalness={0.9} />
-          </mesh>
-        )}
-        
-        {/* Glowing Exhaust Cone */}
+        <NozzleModel skinId={equippedSkin} />
         {gameState === 'PLAYING' && !collisionTriggered && (
           <EngineFlame />
         )}
@@ -1023,15 +564,15 @@ export default function Ship() {
         intensity={1.5} 
         distance={4} 
         color={
-          equippedSkin === 'pink' ? '#ff0055' :
-          equippedSkin === 'cyan' ? '#00f3ff' :
-          equippedSkin === 'yellow' ? '#ffe600' :
-          equippedSkin === 'green' ? '#39ff14' :
-          equippedSkin === 'purple' ? '#9d00ff' :
-          equippedSkin === 'vortex' ? '#ff00ff' :
-          equippedSkin === 'quantum' ? '#00ffff' :
-          equippedSkin === 'temporal' ? '#ffe600' :
-          '#c084fc'
+          equippedSkin === 'pink' ? PALETTE.neonPink :
+          equippedSkin === 'cyan' ? PALETTE.neonCyan :
+          equippedSkin === 'yellow' ? PALETTE.neonYellow :
+          equippedSkin === 'green' ? PALETTE.neonGreen :
+          equippedSkin === 'purple' ? PALETTE.voidPurple :
+          equippedSkin === 'vortex' ? PALETTE.magenta :
+          equippedSkin === 'quantum' ? PALETTE.quantumCyan :
+          equippedSkin === 'temporal' ? PALETTE.neonYellow :
+          PALETTE.lightPurple
         }
       />
 
@@ -1042,7 +583,7 @@ export default function Ship() {
           <mesh position={[0, 0, 0]}>
             <dodecahedronGeometry args={[0.85, 1]} />
             <meshBasicMaterial 
-              color="#00f3ff" 
+              color={PALETTE.neonCyan} 
               wireframe={true} 
               transparent={true} 
               opacity={0.3} 
@@ -1053,7 +594,7 @@ export default function Ship() {
             <mesh position={[0, 0, 0]}>
               <dodecahedronGeometry args={[0.95, 1]} />
               <meshBasicMaterial 
-                color="#ff007f" 
+                color={PALETTE.hotPink} 
                 wireframe={true} 
                 transparent={true} 
                 opacity={0.2} 
@@ -1087,16 +628,16 @@ function EngineFlame() {
       const mat = mesh.material as THREE.MeshBasicMaterial;
       if (mat) {
         if (boostActive) {
-          mat.color.setStyle('#ffe600');
+          mat.color.setStyle(PALETTE.neonYellow);
         } else {
-          let flameColor = '#ff0055'; // Default Pink
-          if (equippedSkin === 'cyan') flameColor = '#00f3ff';
-          if (equippedSkin === 'yellow') flameColor = '#ffe600';
-          if (equippedSkin === 'green') flameColor = '#39ff14';
-          if (equippedSkin === 'purple') flameColor = '#9d00ff';
-          if (equippedSkin === 'vortex') flameColor = '#a6f9ff';
-          if (equippedSkin === 'quantum') flameColor = '#00ffff';
-          if (equippedSkin === 'temporal') flameColor = '#ffaa00';
+          let flameColor = PALETTE.neonPink; // Default Pink
+          if (equippedSkin === 'cyan') flameColor = PALETTE.neonCyan;
+          if (equippedSkin === 'yellow') flameColor = PALETTE.neonYellow;
+          if (equippedSkin === 'green') flameColor = PALETTE.neonGreen;
+          if (equippedSkin === 'purple') flameColor = PALETTE.voidPurple;
+          if (equippedSkin === 'vortex') flameColor = PALETTE.vortexFlame;
+          if (equippedSkin === 'quantum') flameColor = PALETTE.quantumCyan;
+          if (equippedSkin === 'temporal') flameColor = PALETTE.s2Hazard;
           mat.color.setStyle(flameColor);
         }
       }
@@ -1112,11 +653,11 @@ function EngineFlame() {
       <group ref={groupRef}>
         <mesh position={[-0.08, -0.22, 0]}>
           <coneGeometry args={[0.04, 0.35, 5]} />
-          <meshBasicMaterial color="#ff0055" transparent={true} opacity={0.95} />
+          <meshBasicMaterial color={PALETTE.neonPink} transparent={true} opacity={0.95} />
         </mesh>
         <mesh position={[0.08, -0.22, 0]}>
           <coneGeometry args={[0.04, 0.35, 5]} />
-          <meshBasicMaterial color="#ff0055" transparent={true} opacity={0.95} />
+          <meshBasicMaterial color={PALETTE.neonPink} transparent={true} opacity={0.95} />
         </mesh>
       </group>
     );
@@ -1128,15 +669,15 @@ function EngineFlame() {
       <group ref={groupRef}>
         <mesh position={[-0.08, -0.22, -0.02]}>
           <coneGeometry args={[0.035, 0.3, 5]} />
-          <meshBasicMaterial color="#ff0055" transparent={true} opacity={0.95} />
+          <meshBasicMaterial color={PALETTE.neonPink} transparent={true} opacity={0.95} />
         </mesh>
         <mesh position={[0, -0.22, 0.02]}>
           <coneGeometry args={[0.045, 0.35, 5]} />
-          <meshBasicMaterial color="#ff0055" transparent={true} opacity={0.95} />
+          <meshBasicMaterial color={PALETTE.neonPink} transparent={true} opacity={0.95} />
         </mesh>
         <mesh position={[0.08, -0.22, -0.02]}>
           <coneGeometry args={[0.035, 0.3, 5]} />
-          <meshBasicMaterial color="#ff0055" transparent={true} opacity={0.95} />
+          <meshBasicMaterial color={PALETTE.neonPink} transparent={true} opacity={0.95} />
         </mesh>
       </group>
     );
@@ -1147,7 +688,7 @@ function EngineFlame() {
     <group ref={groupRef}>
       <mesh position={[0, -0.22, 0]}>
         <coneGeometry args={[0.08, 0.35, 5]} />
-        <meshBasicMaterial color="#ff0055" transparent={true} opacity={0.95} />
+        <meshBasicMaterial color={PALETTE.neonPink} transparent={true} opacity={0.95} />
       </mesh>
     </group>
   );

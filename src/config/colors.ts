@@ -11,6 +11,8 @@ export const PALETTE = {
   crimsonRed: '#ff0000',
   orange: '#ff8c00',
   quantumCyan: '#00ffff',
+  vortexFlame: '#a6f9ff',
+  magenta: '#ff00ff',
   
   // Specific Biome / Sector colors
   skyPink: '#ff0080',
@@ -27,6 +29,25 @@ export const PALETTE = {
   white: '#ffffff',
   grayText: '#eeeeee',
   lightPurple: '#c084fc',
-  darkPurple: '#4d0099',
+  darkPurpleColor: '#4d0099',
   black: '#000000',
+
+  // Ship specific materials colors
+  darkSlate: '#1a1a24',
+  pinkSilver: '#ddccd7',
+  darkPink: '#2d1a2f',
+  darkCyan: '#1a3545',
+  deepCyan: '#0c1b24',
+  darkGold: '#1a1813',
+  darkGreen: '#1b2a1a',
+  darkPurple: '#130a1c',
+  darkBlue: '#1d1d35',
+  charcoal: '#1e1e2d',
+  blackSlate: '#0c0c14',
+  deepGreen: '#111d11',
+  slate: '#2d2d3d',
+  teal: '#152e3c',
+  goldMuted: '#332b11',
+  deepPurple: '#1c122c',
+  grayDark: '#333333'
 };

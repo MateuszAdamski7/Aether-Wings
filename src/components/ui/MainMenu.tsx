@@ -12,8 +12,29 @@ import {
   Wrench, 
   Palette,
   Lock,
-  Cpu
+  Cpu,
+  Shield, 
+  Layers, 
+  ShieldAlert, 
+  Magnet, 
+  Sparkles, 
+  Coins, 
+  Gauge, 
+  Zap, 
+  Hourglass 
 } from 'lucide-react';
+
+const UPGRADE_ICONS: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
+  Shield,
+  Layers,
+  ShieldAlert,
+  Magnet,
+  Sparkles,
+  Coins,
+  Gauge,
+  Zap,
+  Hourglass
+};
 
 function ShipSvgIcon({ id, color }: { id: string; color: string }) {
   if (id === 'pink') {
@@ -179,7 +200,10 @@ export default function MainMenu() {
         }}
       >
         {/* Node Icon */}
-        <node.icon size={19} className={isUnlocked ? '' : 'opacity-70'} />
+        {(() => {
+          const Icon = UPGRADE_ICONS[node.icon] || Cpu;
+          return <Icon size={19} className={isUnlocked ? '' : 'opacity-70'} />;
+        })()}
         
         {/* Cost / Status Indicator */}
         {!isUnlocked && (
@@ -549,7 +573,10 @@ export default function MainMenu() {
                         <>
                           <div className="flex justify-between items-baseline mb-1">
                             <span className="display-font text-xs font-black text-white uppercase tracking-wider flex items-center gap-1.5">
-                              <node.icon size={13} className={node.branch === 'DEFENSE' ? 'text-[#ff007f]' : node.branch === 'HARVESTING' ? 'text-[#00f3ff]' : 'text-[#ffe600]'} />
+                              {(() => {
+                                const Icon = UPGRADE_ICONS[node.icon] || Cpu;
+                                return <Icon size={13} className={node.branch === 'DEFENSE' ? 'text-[#ff007f]' : node.branch === 'HARVESTING' ? 'text-[#00f3ff]' : 'text-[#ffe600]'} />;
+                              })()}
                               {node.name}
                             </span>
                             <span className={`display-font text-[9px] font-black tracking-widest ${statusColor}`}>

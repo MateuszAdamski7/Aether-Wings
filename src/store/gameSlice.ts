@@ -3,6 +3,8 @@ import type { GameStore, GameSlice } from './types';
 import { LANES, SPAWN_INTERVAL, INITIAL_SPEED, MAX_SPEED, getSectorAtZ } from '../config/gameConfig';
 import { generateRandomMission } from './missionUtils';
 import { audioManager } from '../utils/audio';
+import { spawnChunk } from './utils/obstacleSpawner';
+import { checkObstacleCollisions, checkCrystalCollisions, checkPowerUpCollisions } from './utils/collisionSystem';
 
 export const createGameSlice: StateCreator<GameStore, [], [], GameSlice> = (set, get) => {
   // Load high score from local storage
@@ -324,108 +326,8 @@ export const createGameSlice: StateCreator<GameStore, [], [], GameSlice> = (set,
 
       // Spawning logic: spawn chunk if player approaches lastSpawnedZ
       let nextSpawnZ = state.lastSpawnedZ;
-      const spawnHorizon = newPlayerZ + 180; // Spawn 180 units ahead
-
-      while (nextSpawnZ < spawnHorizon) {
-        // Choose obstacle pattern
-        const patternType = Math.random();
-        const shuffledLanes = [...LANES].sort(() => Math.random() - 0.5);
-        
-        if (patternType < 0.4) {
-          // Double lane obstacle (Harder, leaves 1 lane open)
-          const blockedLane1 = shuffledLanes[0];
-          const blockedLane2 = shuffledLanes[1];
-          const freeLane = shuffledLanes[2];
-
-          const obstacleType = Math.random() > 0.5 ? 'WALL' : 'BARRIER';
-          newObstacles.push({
-            id: `obs-double-1-${nextSpawnZ}`,
-            x: blockedLane1,
-            z: nextSpawnZ,
-            width: 1.5,
-            height: obstacleType === 'WALL' ? 3 : 1.2,
-            type: obstacleType,
-          });
-          newObstacles.push({
-            id: `obs-double-2-${nextSpawnZ}`,
-            x: blockedLane2,
-            z: nextSpawnZ,
-            width: 1.5,
-            height: obstacleType === 'WALL' ? 3 : 1.2,
-            type: obstacleType,
-          });
-
-          if (Math.random() > 0.3) {
-            newCrystals.push({
-              id: `cry-${nextSpawnZ}`,
-              x: freeLane,
-              z: nextSpawnZ + (Math.random() * 10 - 5),
-              collected: false,
-              color: '#00f3ff',
-            });
-          }
-        } else if (patternType < 0.8) {
-          // Single lane obstacle
-          const blockedLane = shuffledLanes[0];
-          const freeLane1 = shuffledLanes[1];
-          const freeLane2 = shuffledLanes[2];
-
-          newObstacles.push({
-            id: `obs-single-${nextSpawnZ}`,
-            x: blockedLane,
-            z: nextSpawnZ,
-            width: 1.5,
-            height: 2,
-            type: 'BARRIER',
-          });
-
-          if (Math.random() > 0.4) {
-            newCrystals.push({
-              id: `cry-1-${nextSpawnZ}`,
-              x: freeLane1,
-              z: nextSpawnZ - 5,
-              collected: false,
-              color: '#ff007f',
-            });
-          }
-          if (Math.random() > 0.4) {
-            newCrystals.push({
-              id: `cry-2-${nextSpawnZ}`,
-              x: freeLane2,
-              z: nextSpawnZ + 5,
-              collected: false,
-              color: '#ffe600',
-            });
-          }
-        } else {
-          // No obstacles, just crystals lined up
-          const lane = LANES[Math.floor(Math.random() * LANES.length)];
-          for (let i = 0; i < 3; i++) {
-            newCrystals.push({
-              id: `cry-line-${i}-${nextSpawnZ}`,
-              x: lane,
-              z: nextSpawnZ + (i * 8) - 8,
-              collected: false,
-              color: '#9d00ff',
-            });
-          }
-        }
-
-        // Spawn track power-up collectibles with 12% probability
-        if (Math.random() < 0.12) {
-          const pTypes: ('SHIELD' | 'MAGNET' | 'SLOWMO')[] = ['SHIELD', 'MAGNET', 'SLOWMO'];
-          const randomType = pTypes[Math.floor(Math.random() * pTypes.length)];
-          const randomLane = LANES[Math.floor(Math.random() * LANES.length)];
-          newPowerUps.push({
-            id: `pw-${randomType}-${nextSpawnZ}`,
-            x: randomLane,
-            z: nextSpawnZ + 15,
-            type: randomType,
-            collected: false,
-          });
-        }
-
-        // Increment spawn counter
+      if (newPlayerZ + SPAWN_INTERVAL * 5 > nextSpawnZ) {
+        spawnChunk(nextSpawnZ, newObstacles, newCrystals, newPowerUps);
         nextSpawnZ += SPAWN_INTERVAL;
       }
 
@@ -450,42 +352,26 @@ export const createGameSlice: StateCreator<GameStore, [], [], GameSlice> = (set,
       // Perform collision checks inside frame tick
       const shipWidth = 1.0;
       const shipLength = 1.5;
-      
-      let collisionDetected = false;
-      let obstaclesDestroyedThisFrameCount = 0;
 
-      // Check obstacles
-      for (const obs of newObstacles) {
-        const zDiff = Math.abs(obs.z - newPlayerZ);
-        const xDiff = Math.abs(obs.x - state.shipX);
-        
-        if (zDiff < (shipLength / 2 + 0.6) && xDiff < (obs.width / 2 + shipWidth / 2)) {
-          if (nextBoostActive) {
-            // Mark obstacle as destroyed by setting its position far behind
-            obs.z = -9999;
-            obstaclesDestroyedThisFrameCount++;
-          } else if (nextShieldActive) {
-            // Shield absorbed the collision!
-            obs.z = -9999;
-            if (shieldStrength > 1) {
-              shieldStrength = 1;
-              audioManager.playShieldShatterFx();
-            } else {
-              nextShieldActive = false;
-              shieldStrength = 0;
-              audioManager.playShieldShatterFx();
-            }
-          } else {
-            collisionDetected = true;
-            break;
-          }
-        }
-      }
+      const obsResult = checkObstacleCollisions(
+        newObstacles,
+        newPlayerZ,
+        state.shipX,
+        shipLength,
+        shipWidth,
+        nextBoostActive,
+        nextShieldActive,
+        shieldStrength
+      );
 
-      if (collisionDetected) {
+      if (obsResult.collisionDetected) {
         get().triggerCollision();
         return;
       }
+
+      nextShieldActive = obsResult.shieldActive;
+      shieldStrength = obsResult.shieldStrength;
+      const obstaclesDestroyedThisFrameCount = obsResult.obstaclesDestroyed;
 
       // Filter out destroyed obstacles
       if (obstaclesDestroyedThisFrameCount > 0) {
@@ -508,57 +394,36 @@ export const createGameSlice: StateCreator<GameStore, [], [], GameSlice> = (set,
         magnetRadius = magRadii[state.upgrades.magnetLevel];
       }
 
-      // Check crystals
-      let crystalsCollectedThisFrame = 0;
-      for (const cry of newCrystals) {
-        if (cry.collected) continue;
+      const cryResult = checkCrystalCollisions(
+        newCrystals,
+        newPlayerZ,
+        state.shipX,
+        shipLength,
+        shipWidth,
+        magnetRadius,
+        currentSpeed,
+        physicsDt
+      );
+      const crystalsCollectedThisFrame = cryResult.crystalsCollected;
 
-        const zDiff = cry.z - newPlayerZ;
-        const xDiff = cry.x - state.shipX;
-        const distToShip = Math.sqrt(xDiff * xDiff + zDiff * zDiff);
+      const pwResult = checkPowerUpCollisions(
+        newPowerUps,
+        newPlayerZ,
+        state.shipX,
+        shipLength,
+        shipWidth,
+        state.upgrades
+      );
 
-        const zPullThreshold = Math.max(4.0, currentSpeed * 0.12);
-        if (magnetRadius > 0 && distToShip < magnetRadius && zDiff > 0 && zDiff < zPullThreshold) {
-          // Attract crystals to ship with a snappy arcade pull rate to guarantee collection from distant lanes
-          const pull = Math.min(1.0, physicsDt * 16.0);
-          cry.x += (state.shipX - cry.x) * pull;
-          cry.z += (newPlayerZ - cry.z) * pull * 0.5;
-        }
-
-        const finalZDiff = Math.abs(cry.z - newPlayerZ);
-        const finalXDiff = Math.abs(cry.x - state.shipX);
-
-        if (finalZDiff < (shipLength / 2 + 0.8) && finalXDiff < (0.8 + shipWidth / 2)) {
-          cry.collected = true;
-          crystalsCollectedThisFrame++;
-          audioManager.playCollectFx();
-        }
+      if (pwResult.shieldActive !== null) {
+        nextShieldActive = pwResult.shieldActive;
+        shieldStrength = pwResult.shieldStrength ?? 1;
       }
-
-      // Check power-up item collection
-      for (const pw of newPowerUps) {
-        if (pw.collected) continue;
-        const zDiff = Math.abs(pw.z - newPlayerZ);
-        const xDiff = Math.abs(pw.x - state.shipX);
-
-        if (zDiff < (shipLength / 2 + 0.8) && xDiff < (0.8 + shipWidth / 2)) {
-          pw.collected = true;
-          if (pw.type === 'SHIELD') {
-            nextShieldActive = true;
-            shieldStrength = state.upgrades.defense_shield_2 ? 2 : 1;
-            audioManager.playShieldPickupFx();
-          } else if (pw.type === 'MAGNET') {
-            const extraTime = state.upgrades.harvest_magnet_2 ? 3.0 : 0.0;
-            nextMagnetActiveTime = 8.0 + extraTime;
-            audioManager.playMagnetPickupFx();
-          } else if (pw.type === 'SLOWMO') {
-            // Temporal Warp Wing passive: 8s slow-mo duration instead of 5s
-            const baseDuration = state.upgrades.equippedSkin === 'temporal' ? 8.0 : 5.0;
-            const extraDuration = state.upgrades.engine_boost_3 ? 2.0 : 0.0;
-            nextSlowMoActiveTime = baseDuration + extraDuration;
-            audioManager.playSlowMoPickupFx();
-          }
-        }
+      if (pwResult.magnetActiveTime !== null) {
+        nextMagnetActiveTime = pwResult.magnetActiveTime;
+      }
+      if (pwResult.slowMoActiveTime !== null) {
+        nextSlowMoActiveTime = pwResult.slowMoActiveTime;
       }
 
       // Vortex Singularity passive: double crystal earnings and boost charge rate
