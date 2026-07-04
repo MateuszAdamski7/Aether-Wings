@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useGameStore } from '../../store/useGameStore';
-import { ShieldAlert, Shield, Award } from 'lucide-react';
+import { ShieldAlert, Award } from 'lucide-react';
 
 export default function GameHUD() {
   // Read state hooks
@@ -19,7 +19,6 @@ export default function GameHUD() {
 
   // Upgrades & Power-Up subscriptions
   const shieldActive = useGameStore((state) => state.shieldActive);
-  const shieldStrength = useGameStore((state) => state.shieldStrength);
   const shieldRegenTimer = useGameStore((state) => state.shieldRegenTimer);
   const magnetActiveTime = useGameStore((state) => state.magnetActiveTime);
   const slowMoActiveTime = useGameStore((state) => state.slowMoActiveTime);
@@ -212,14 +211,6 @@ export default function GameHUD() {
             <div className="flex justify-between items-baseline mb-1">
               <div className="flex items-center gap-1.5">
                 <span className="text-[10px] uppercase tracking-widest text-gray-400 display-font">Velocity</span>
-                {shieldActive && (
-                  <span className="px-1.5 py-0.5 rounded bg-[#00f3ff]/10 border border-[#00f3ff]/30 flex items-center gap-1 animate-pulse" title={`Deflector Shield Active: ${shieldStrength} charge(s)`}>
-                    <Shield size={9} className="text-[#00f3ff]" />
-                    {shieldStrength > 1 && (
-                      <span className="text-[8px] font-black text-[#00f3ff] display-font leading-none">x{shieldStrength}</span>
-                    )}
-                  </span>
-                )}
               </div>
               <span className="display-font text-lg font-bold text-white text-glow-cyan">{speedKmh} <span className="text-[10px] text-cyan-400">km/h</span></span>
             </div>

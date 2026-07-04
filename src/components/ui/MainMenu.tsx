@@ -295,15 +295,12 @@ export default function MainMenu() {
       >
         {/* Title */}
         <h1 
-          className="display-font text-4xl md:text-5xl font-black mb-1 text-glow-magenta glitch text-center"
+          className="display-font text-4xl md:text-5xl font-black mb-6 text-glow-magenta glitch text-center"
           data-text="AETHER WINGS"
           style={{ letterSpacing: '4px', color: '#ff007f' }}
         >
           AETHER WINGS
         </h1>
-        <p className="display-font text-xs uppercase tracking-widest text-cyan-400 mb-6 text-glow-cyan text-center">
-          Retro 3D Infinite Runner
-        </p>
 
         {/* Tab Selection */}
         <div className="flex gap-4 mb-6 border-b border-white/10 pb-2 w-full justify-center">
@@ -371,7 +368,7 @@ export default function MainMenu() {
               onClick={handleStart}
               className="btn-cyber btn-cyber-magenta px-10 py-3.5 text-md w-full max-w-xs justify-center"
             >
-              START ENGINES
+              PLAY
             </button>
 
             <div className="text-[9px] uppercase tracking-widest text-gray-500 mt-6 display-font">
@@ -577,7 +574,7 @@ export default function MainMenu() {
 
             {/* 2.3 VISUALS SUB-TAB */}
             {garageTab === 'VISUALS' && (
-              <div className="flex flex-col gap-2 max-h-[260px] overflow-y-auto pr-1">
+              <div className="flex flex-col gap-2 max-h-[300px] overflow-y-auto pr-1">
                 {SKINS.filter(s => ['pink', 'cyan', 'yellow', 'green', 'purple'].includes(s.id)).map((skin) => {
                   const isUnlocked = upgrades.unlockedSkins.includes(skin.id);
                   const isEquipped = upgrades.equippedSkin === skin.id;

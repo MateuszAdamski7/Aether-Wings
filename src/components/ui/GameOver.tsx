@@ -71,15 +71,12 @@ export default function GameOver() {
         
         {/* Flashing Danger Header */}
         <h1 
-          className="display-font text-4xl md:text-5xl font-black mb-1 text-glow-magenta glitch text-red-500"
+          className="display-font text-4xl md:text-5xl font-black mb-6 text-glow-magenta glitch text-red-500"
           data-text="SYSTEM CRASH"
           style={{ letterSpacing: '2px' }}
         >
           SYSTEM CRASH
         </h1>
-        <p className="display-font text-xs uppercase tracking-widest text-[#ff007f] mb-6 text-glow-magenta">
-          Ship Hull Integrity Failed
-        </p>
 
         {/* High Score Celebration Banner */}
         {isNewHighScore && (
