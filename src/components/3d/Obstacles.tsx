@@ -1,5 +1,6 @@
 import { useGameStore } from '../../store/useGameStore';
 import type { Obstacle } from '../../store/useGameStore';
+import { getSectorAtZ } from '../../config/gameConfig';
 
 export default function Obstacles() {
   const obstacles = useGameStore((state) => state.obstacles);
@@ -14,15 +15,8 @@ export default function Obstacles() {
 }
 
 function ObstacleInstance({ obstacle }: { obstacle: Obstacle }) {
-  // Set hazard color based on biome sector of this specific obstacle
-  let hazardColor = '#ff0055'; // Sector 1: Magenta/Pink
-  if (obstacle.z >= 2800) {
-    hazardColor = '#9d00ff'; // Sector 3: Void Purple
-  } else if (obstacle.z >= 1200) {
-    hazardColor = '#ffaa00'; // Sector 2: Neon Yellow/Orange
-  }
-
-  const isSector2 = obstacle.z >= 1200 && obstacle.z < 2800;
+  const sector = getSectorAtZ(obstacle.z);
+  const { hazard, accent } = sector.colors;
 
   return (
     <group position={[obstacle.x, obstacle.height / 2 - 0.45, obstacle.z]}>
@@ -41,7 +35,7 @@ function ObstacleInstance({ obstacle }: { obstacle: Obstacle }) {
       <mesh>
         <boxGeometry args={[obstacle.width + 0.05, obstacle.height + 0.05, 0.45]} />
         <meshBasicMaterial 
-          color={hazardColor} 
+          color={hazard} 
           wireframe={true}
         />
       </mesh>
@@ -49,7 +43,7 @@ function ObstacleInstance({ obstacle }: { obstacle: Obstacle }) {
       {/* 3. Small hazard lights or accents */}
       <mesh position={[0, obstacle.height / 2 - 0.1, 0.22]}>
         <boxGeometry args={[obstacle.width * 0.4, 0.08, 0.02]} />
-        <meshBasicMaterial color={isSector2 ? '#39ff14' : '#ffe600'} />
+        <meshBasicMaterial color={accent} />
       </mesh>
     </group>
   );

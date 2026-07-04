@@ -1,6 +1,6 @@
 import type { StateCreator } from 'zustand';
 import type { GameStore, GameSlice } from './types';
-import { LANES, SPAWN_INTERVAL, INITIAL_SPEED, MAX_SPEED } from '../config/gameConfig';
+import { LANES, SPAWN_INTERVAL, INITIAL_SPEED, MAX_SPEED, getSectorAtZ } from '../config/gameConfig';
 import { generateRandomMission } from './missionUtils';
 import { audioManager } from '../utils/audio';
 
@@ -320,12 +320,7 @@ export const createGameSlice: StateCreator<GameStore, [], [], GameSlice> = (set,
       const newScore = state.score + Math.floor(currentSpeed * physicsDt * 0.1);
 
       // Determine current sector/biome based on player Z progress
-      let currentSector: 1 | 2 | 3 = 1;
-      if (newPlayerZ >= 2800) {
-        currentSector = 3;
-      } else if (newPlayerZ >= 1200) {
-        currentSector = 2;
-      }
+      const currentSector = getSectorAtZ(newPlayerZ).id;
 
       // Spawning logic: spawn chunk if player approaches lastSpawnedZ
       let nextSpawnZ = state.lastSpawnedZ;
@@ -439,14 +434,15 @@ export const createGameSlice: StateCreator<GameStore, [], [], GameSlice> = (set,
       newCrystals = newCrystals.filter((c) => c.z > newPlayerZ - 15);
       newPowerUps = newPowerUps.filter((pw) => pw.z > newPlayerZ - 15);
 
-      // Update moving obstacles for Sectors 2 and 3 based on their Z coordinate position
+      // Update moving obstacles based on dynamic sector configuration properties
       for (const obs of newObstacles) {
-        if (obs.z >= 1200 && obs.id.includes('single')) {
+        const obsSector = getSectorAtZ(obs.z);
+        if (obsSector.hasSlidingObstacles && obs.id.includes('single')) {
           // Slide barriers smoothly between -2.0 and +2.0
           obs.x = Math.sin(obs.z * 0.1 + newPlayerZ * 0.04) * 2.0;
         }
-        if (obs.z >= 2800 && obs.type === 'BARRIER') {
-          // Pulse the scale/height of barriers in Sector 3
+        if (obsSector.hasPulsingObstacles && obs.type === 'BARRIER') {
+          // Pulse the scale/height of barriers
           obs.height = 1.2 + Math.sin(newPlayerZ * 0.08) * 0.4;
         }
       }

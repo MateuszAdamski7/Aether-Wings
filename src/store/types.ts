@@ -94,7 +94,7 @@ export interface GameSlice {
   quantumShieldRegenerated: boolean;
   magnetActiveTime: number;
   slowMoActiveTime: number;
-  currentSector: 1 | 2 | 3;
+  currentSector: number;
   runStats: RunStats;
 
   // Actions

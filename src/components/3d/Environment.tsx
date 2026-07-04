@@ -3,6 +3,7 @@ import { useFrame } from '@react-three/fiber';
 import { Sparkles } from '@react-three/drei';
 import * as THREE from 'three';
 import { useGameStore } from '../../store/useGameStore';
+import { SECTORS, getSectorAtZ, getSectorTransition } from '../../config/gameConfig';
 
 // Custom shader for the classic Synthwave Sun
 const SunShader = {
@@ -71,8 +72,8 @@ export default function Environment() {
   const graphicsQuality = useGameStore((state) => state.graphicsQuality);
   
   // Colors for star sparkles in each sector biome
-  const starColor1 = currentSector === 1 ? '#00f3ff' : currentSector === 2 ? '#39ff14' : '#ff0000';
-  const starColor2 = currentSector === 1 ? '#ff007f' : currentSector === 2 ? '#ffe600' : '#7a00ff';
+  const starColor1 = SECTORS[currentSector - 1]?.colors.star1 ?? '#00f3ff';
+  const starColor2 = SECTORS[currentSector - 1]?.colors.star2 ?? '#ff007f';
 
   // Update shader uniforms and followGroup Z position
   useFrame((state, delta) => {
@@ -80,47 +81,20 @@ export default function Environment() {
     const slowMoActive = slowMoActiveTime > 0;
     const dt = Math.min(delta, 0.1) * (slowMoActive ? 0.65 : 1.0);
 
-    // Continuous sector-based color interpolation based on playerZ coordinate
-    const s1Bottom = new THREE.Color('#ff8c00');
-    const s1Top = new THREE.Color('#ff0080');
-    const s1Fog = new THREE.Color('#03030c');
+    const { currentSector, nextSector, t } = getSectorTransition(playerZ);
 
-    const s2Bottom = new THREE.Color('#ff5500');
-    const s2Top = new THREE.Color('#ffe600');
-    const s2Fog = new THREE.Color('#011408');
+    const targetBottom = new THREE.Color(currentSector.colors.skyBottom);
+    const targetTop = new THREE.Color(currentSector.colors.skyTop);
+    const targetFogColor = new THREE.Color(currentSector.colors.fog);
 
-    const s3Bottom = new THREE.Color('#7a00ff');
-    const s3Top = new THREE.Color('#ff003c');
-    const s3Fog = new THREE.Color('#090214');
+    if (nextSector && t > 0) {
+      const nextBottom = new THREE.Color(nextSector.colors.skyBottom);
+      const nextTop = new THREE.Color(nextSector.colors.skyTop);
+      const nextFogColor = new THREE.Color(nextSector.colors.fog);
 
-    const targetBottom = new THREE.Color();
-    const targetTop = new THREE.Color();
-    const targetFogColor = new THREE.Color();
-
-    if (playerZ < 1000) {
-      targetBottom.copy(s1Bottom);
-      targetTop.copy(s1Top);
-      targetFogColor.copy(s1Fog);
-    } else if (playerZ < 1300) {
-      // Transition Sector 1 -> 2 over 300 meters
-      const t = (playerZ - 1000) / 300;
-      targetBottom.lerpColors(s1Bottom, s2Bottom, t);
-      targetTop.lerpColors(s1Top, s2Top, t);
-      targetFogColor.lerpColors(s1Fog, s2Fog, t);
-    } else if (playerZ < 2600) {
-      targetBottom.copy(s2Bottom);
-      targetTop.copy(s2Top);
-      targetFogColor.copy(s2Fog);
-    } else if (playerZ < 2900) {
-      // Transition Sector 2 -> 3 over 300 meters
-      const t = (playerZ - 2600) / 300;
-      targetBottom.lerpColors(s2Bottom, s3Bottom, t);
-      targetTop.lerpColors(s2Top, s3Top, t);
-      targetFogColor.lerpColors(s2Fog, s3Fog, t);
-    } else {
-      targetBottom.copy(s3Bottom);
-      targetTop.copy(s3Top);
-      targetFogColor.copy(s3Fog);
+      targetBottom.lerp(nextBottom, t);
+      targetTop.lerp(nextTop, t);
+      targetFogColor.lerp(nextFogColor, t);
     }
 
     if (sunMaterialRef.current) {
@@ -253,28 +227,24 @@ function MountainInstance({ mountain }: MountainProps) {
     meshRef.current.position.z = absoluteZ;
 
     // Toggle geometry visibility based on absolute Z position
-    const isPyramid = absoluteZ < 1200;
+    const currentSectorConfig = getSectorAtZ(absoluteZ);
+    const isPyramid = currentSectorConfig.geometryType === 'PYRAMID';
     if (pyramidGroupRef.current) pyramidGroupRef.current.visible = isPyramid;
     if (towerGroupRef.current) towerGroupRef.current.visible = !isPyramid;
 
     // Smoothly update neon outline colors at biome boundaries
     if (isPyramid) {
       if (pyramidWireRef.current) {
-        // Sector 1: Left Cyan, Right Pink
-        const targetColor = new THREE.Color(mountain.x > 0 ? '#ff007f' : '#00f3ff');
+        const targetColor = new THREE.Color(
+          mountain.x > 0 ? currentSectorConfig.colors.mountainRight : currentSectorConfig.colors.mountainLeft
+        );
         pyramidWireRef.current.color.lerp(targetColor, dt * 4.0);
       }
     } else {
       if (towerWireRef.current) {
-        // Sector 2/3 colors
-        const targetColor = new THREE.Color();
-        if (absoluteZ >= 2800) {
-          // Sector 3: Left Red, Right Violet
-          targetColor.setStyle(mountain.x > 0 ? '#9d00ff' : '#ff0000');
-        } else {
-          // Sector 2: Left Green, Right Yellow
-          targetColor.setStyle(mountain.x > 0 ? '#ffe600' : '#39ff14');
-        }
+        const targetColor = new THREE.Color(
+          mountain.x > 0 ? currentSectorConfig.colors.mountainRight : currentSectorConfig.colors.mountainLeft
+        );
         towerWireRef.current.color.lerp(targetColor, dt * 4.0);
       }
     }
