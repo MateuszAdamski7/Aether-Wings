@@ -107,6 +107,7 @@ export interface PowerUpCollisionResult {
   slowMoActiveTime: number | null;
 }
 
+//todo: upgrades just like in gameSlice, powerups should be objects, implement factory for upgraades
 export const checkPowerUpCollisions = (
   powerUps: PowerUp[],
   playerZ: number,

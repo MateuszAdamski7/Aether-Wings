@@ -1,5 +1,7 @@
 import { PALETTE } from './colors';
 
+
+//todo: guide on adding new sectors
 export interface SectorConfig {
   id: number;
   name: string;

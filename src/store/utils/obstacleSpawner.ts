@@ -1,6 +1,8 @@
 import { LANES, PALETTE } from '../../config/gameConfig';
 import type { Obstacle, Crystal, PowerUp } from '../types';
 
+//todo: maybe obstacles, powerups and crystals should be seperated; create config file for obstacles, powerups and crystals
+
 export const spawnChunk = (
   nextSpawnZ: number,
   obstacles: Obstacle[],
@@ -12,6 +14,7 @@ export const spawnChunk = (
 
   if (patternType < 0.4) {
     // Double lane obstacle (Harder, leaves 1 lane open)
+    //todo: what if we had 5 lanes
     const blockedLane1 = shuffledLanes[0];
     const blockedLane2 = shuffledLanes[1];
     const freeLane = shuffledLanes[2];

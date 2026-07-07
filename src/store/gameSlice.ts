@@ -1,6 +1,6 @@
 import type { StateCreator } from 'zustand';
 import type { GameStore, GameSlice } from './types';
-import { LANES, SPAWN_INTERVAL, INITIAL_SPEED, MAX_SPEED, getSectorAtZ } from '../config/gameConfig';
+import { LANES, SPAWN_INTERVAL, INITIAL_SPEED, MAX_SPEED, getSectorAtZ, BOOST_DURATION } from '../config/gameConfig';
 import { generateRandomMission } from './missionUtils';
 import { audioManager } from '../utils/audio';
 import { spawnChunk } from './utils/obstacleSpawner';
@@ -150,6 +150,10 @@ export const createGameSlice: StateCreator<GameStore, [], [], GameSlice> = (set,
     setGameState: (state) => set({ gameState: state }),
 
     moveLeft: () => {
+      //
+      // if gameState === playing (not game over nor start)
+      //
+      //TODO: move to canMove fun
       if (get().gameState !== 'PLAYING' || get().boostActive) return;
       const { targetX } = get();
       
@@ -165,6 +169,10 @@ export const createGameSlice: StateCreator<GameStore, [], [], GameSlice> = (set,
       }
 
       // Move visual Right (decrement coordinate index)
+
+      //
+      // move right = move visual right, positive on X axis
+      //
       const nextIndex = Math.max(0, closestLaneIndex - 1);
       set({
         targetX: LANES[nextIndex],
@@ -173,6 +181,10 @@ export const createGameSlice: StateCreator<GameStore, [], [], GameSlice> = (set,
     },
 
     moveRight: () => {
+      //
+      // if gameState === playing (not game over nor start)
+      //
+      //TODO: move to canMove fun
       if (get().gameState !== 'PLAYING' || get().boostActive) return;
       const { targetX } = get();
       
@@ -188,6 +200,10 @@ export const createGameSlice: StateCreator<GameStore, [], [], GameSlice> = (set,
       }
 
       // Move visual Left (increment coordinate index)
+
+      //
+      // move left = move visual left, negative on X axis
+      //
       const nextIndex = Math.min(LANES.length - 1, closestLaneIndex + 1);
       set({
         targetX: LANES[nextIndex],
@@ -218,6 +234,8 @@ export const createGameSlice: StateCreator<GameStore, [], [], GameSlice> = (set,
       set({ collisionTriggered: true, speed: 0, boostActive: false });
 
       // After screen shake/glitch effect, trigger game over
+
+      //TODO: move to saveNewRecord fun
       setTimeout(() => {
         const { score, highScore } = get();
         if (score > highScore) {
@@ -230,10 +248,12 @@ export const createGameSlice: StateCreator<GameStore, [], [], GameSlice> = (set,
 
     activateBoost: () => {
       const { gameState, boostCharge, boostActive, collisionTriggered, speed, runStats } = get();
+      //TODO: isPlaying function
       if (gameState !== 'PLAYING' || boostActive || boostCharge < 10 || collisionTriggered) return;
 
       audioManager.playBoostFx();
-      const boostDuration = get().upgrades.engine_boost_1 ? 6.0 : 5.0;
+      //todo: upgrades shouldnt be hardcoded here
+      const boostDuration = get().upgrades.engine_boost_1 ? 6.0 : BOOST_DURATION;
       set({
         boostActive: true,
         boostTimeRemaining: boostDuration,
@@ -252,6 +272,7 @@ export const createGameSlice: StateCreator<GameStore, [], [], GameSlice> = (set,
       audioManager.setSlowMo(isSlowMo);
 
       // Temporal Warp Wing passive: 0.45x time dilation factor instead of 0.65x
+      //TODO: upgrades shouldnt be hardcoded here
       const slowMoFactor = state.upgrades.equippedSkin === 'temporal' ? 0.45 : 0.65;
       const physicsDt = dt * (isSlowMo ? slowMoFactor : 1.0);
 
@@ -274,8 +295,10 @@ export const createGameSlice: StateCreator<GameStore, [], [], GameSlice> = (set,
       let newCrystals = [...state.crystals];
       let newPowerUps = [...state.powerUps];
 
+      //todo: move to activateBoost fun
       if (state.boostActive) {
         nextBoostTime = state.boostTimeRemaining - physicsDt;
+        //todo: as above
         const extraBoostSpeed = state.upgrades.engine_boost_3 ? 35 : 25;
         const targetBoostSpeed = state.maxSpeed + extraBoostSpeed;
         
@@ -294,14 +317,18 @@ export const createGameSlice: StateCreator<GameStore, [], [], GameSlice> = (set,
           currentSpeed = state.preBoostSpeed; // Ensure it is exactly preBoostSpeed
           nextPreBoostSpeed = 0; // Clear it, decay is done!
 
+          //todo: sonic blast should start a bit earlier
           // SONIC BLAST: Destroy all obstacles in front of player within 80 units
           const blastRangeZ = 80;
+
+          //todo: adding/removing obstacles should be in its own function
           newObstacles = newObstacles.filter((obs) => {
             const zDiff = obs.z - state.playerZ;
             return !(zDiff > 0 && zDiff < blastRangeZ);
           });
           audioManager.playBlastFx();
         }
+        // todo: moveTo function
         nextTargetX = 0; // Lock to middle lane
       } else {
         // Normal speed progression
@@ -325,6 +352,8 @@ export const createGameSlice: StateCreator<GameStore, [], [], GameSlice> = (set,
       const currentSector = getSectorAtZ(newPlayerZ).id;
 
       // Spawning logic: spawn chunk if player approaches lastSpawnedZ
+
+      //todo: move to new fun
       let nextSpawnZ = state.lastSpawnedZ;
       if (newPlayerZ + SPAWN_INTERVAL * 5 > nextSpawnZ) {
         spawnChunk(nextSpawnZ, newObstacles, newCrystals, newPowerUps);
@@ -332,11 +361,14 @@ export const createGameSlice: StateCreator<GameStore, [], [], GameSlice> = (set,
       }
 
       // Cleanup elements that the player has passed (behind by more than 15 units)
+
+      //todo: magic number
       newObstacles = newObstacles.filter((o) => o.z > newPlayerZ - 15);
       newCrystals = newCrystals.filter((c) => c.z > newPlayerZ - 15);
       newPowerUps = newPowerUps.filter((pw) => pw.z > newPlayerZ - 15);
 
       // Update moving obstacles based on dynamic sector configuration properties
+      //move to external fun
       for (const obs of newObstacles) {
         const obsSector = getSectorAtZ(obs.z);
         if (obsSector.hasSlidingObstacles && obs.id.includes('single')) {
@@ -353,6 +385,7 @@ export const createGameSlice: StateCreator<GameStore, [], [], GameSlice> = (set,
       const shipWidth = 1.0;
       const shipLength = 1.5;
 
+      //todo: too many arguments, should be an object (collision check)
       const obsResult = checkObstacleCollisions(
         newObstacles,
         newPlayerZ,
@@ -374,11 +407,13 @@ export const createGameSlice: StateCreator<GameStore, [], [], GameSlice> = (set,
       const obstaclesDestroyedThisFrameCount = obsResult.obstaclesDestroyed;
 
       // Filter out destroyed obstacles
+      //todo: magic number
       if (obstaclesDestroyedThisFrameCount > 0) {
         newObstacles = newObstacles.filter(o => o.z > -9000);
       }
 
       // Calculate magnet radius based on active power-up or permanent upgrade level
+      //todo: should be new function(magnet radius)
       let magnetRadius = 0;
       if (nextMagnetActiveTime > 0) {
         magnetRadius = 6.0;
@@ -394,6 +429,7 @@ export const createGameSlice: StateCreator<GameStore, [], [], GameSlice> = (set,
         magnetRadius = magRadii[state.upgrades.magnetLevel];
       }
 
+      //todo: same as collision above
       const cryResult = checkCrystalCollisions(
         newCrystals,
         newPlayerZ,
@@ -406,6 +442,7 @@ export const createGameSlice: StateCreator<GameStore, [], [], GameSlice> = (set,
       );
       const crystalsCollectedThisFrame = cryResult.crystalsCollected;
 
+      //todo: same as above
       const pwResult = checkPowerUpCollisions(
         newPowerUps,
         newPlayerZ,
@@ -427,17 +464,20 @@ export const createGameSlice: StateCreator<GameStore, [], [], GameSlice> = (set,
       }
 
       // Vortex Singularity passive: double crystal earnings and boost charge rate
+      //todo: upgrades
       const hasVortex = state.upgrades.equippedSkin === 'vortex';
       const crystalMultiplier = hasVortex ? 2 : 1;
       const crystalsEarnedThisFrame = crystalsCollectedThisFrame * crystalMultiplier;
 
       // Accumulate boost charge (max 10) if boost is not currently active
+      //todo: XDDDDDD
       if (!nextBoostActive && crystalsCollectedThisFrame > 0) {
         const boostChargeRate = state.upgrades.engine_boost_2 ? 1.2 : 1.0;
         nextBoostCharge = Math.min(10, nextBoostCharge + crystalsEarnedThisFrame * boostChargeRate);
       }
 
       // Economy update: add collected crystals to lifetime count
+      //todo: fun
       let nextLifetimeCrystals = state.lifetimeCrystals;
       if (crystalsCollectedThisFrame > 0) {
         nextLifetimeCrystals += crystalsEarnedThisFrame;
@@ -452,6 +492,7 @@ export const createGameSlice: StateCreator<GameStore, [], [], GameSlice> = (set,
       };
 
       // Mission progress evaluations
+      //todo: fun
       const nextMissions = state.activeMissions.map((m) => {
         if (m.completed) return m;
 
