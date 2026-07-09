@@ -1,4 +1,4 @@
-import type { Obstacle, Crystal, PowerUp, GameStoreUpgrades } from '../types';
+import type { Obstacle, Crystal, PowerUp } from '../types';
 import { audioManager } from '../../utils/audio';
 
 export interface ObstacleCollisionResult {
@@ -8,31 +8,44 @@ export interface ObstacleCollisionResult {
   obstaclesDestroyed: number;
 }
 
-export const checkObstacleCollisions = (
-  obstacles: Obstacle[],
-  playerZ: number,
-  shipX: number,
-  shipLength: number,
-  shipWidth: number,
-  boostActive: boolean,
-  shieldActive: boolean,
-  shieldStrength: number
-): ObstacleCollisionResult => {
+export interface CheckObstacleCollisionsParams {
+  obstacles: Obstacle[];
+  playerZ: number;
+  shipX: number;
+  shipLength: number;
+  shipWidth: number;
+  boostActive: boolean;
+  shieldActive: boolean;
+  shieldStrength: number;
+}
+
+export const checkObstacleCollisions = ({
+  obstacles,
+  playerZ,
+  shipX,
+  shipLength,
+  shipWidth,
+  boostActive,
+  shieldActive,
+  shieldStrength,
+}: CheckObstacleCollisionsParams): ObstacleCollisionResult => {
   let collisionDetected = false;
   let shieldActiveState = shieldActive;
   let shieldStrengthState = shieldStrength;
   let obstaclesDestroyed = 0;
 
   for (const obs of obstacles) {
+    if (obs.destroyed) continue;
+
     const zDiff = Math.abs(obs.z - playerZ);
     const xDiff = Math.abs(obs.x - shipX);
 
     if (zDiff < (shipLength / 2 + 0.6) && xDiff < (obs.width / 2 + shipWidth / 2)) {
       if (boostActive) {
-        obs.z = -9999;
+        obs.destroyed = true;
         obstaclesDestroyed++;
       } else if (shieldActiveState) {
-        obs.z = -9999;
+        obs.destroyed = true;
         if (shieldStrengthState > 1) {
           shieldStrengthState = 1;
           audioManager.playShieldShatterFx();
@@ -60,16 +73,27 @@ export interface CrystalCollisionResult {
   crystalsCollected: number;
 }
 
-export const checkCrystalCollisions = (
-  crystals: Crystal[],
-  playerZ: number,
-  shipX: number,
-  shipLength: number,
-  shipWidth: number,
-  magnetRadius: number,
-  currentSpeed: number,
-  physicsDt: number
-): CrystalCollisionResult => {
+export interface CheckCrystalCollisionsParams {
+  crystals: Crystal[];
+  playerZ: number;
+  shipX: number;
+  shipLength: number;
+  shipWidth: number;
+  magnetRadius: number;
+  currentSpeed: number;
+  physicsDt: number;
+}
+
+export const checkCrystalCollisions = ({
+  crystals,
+  playerZ,
+  shipX,
+  shipLength,
+  shipWidth,
+  magnetRadius,
+  currentSpeed,
+  physicsDt,
+}: CheckCrystalCollisionsParams): CrystalCollisionResult => {
   let crystalsCollected = 0;
 
   for (const cry of crystals) {
@@ -107,15 +131,27 @@ export interface PowerUpCollisionResult {
   slowMoActiveTime: number | null;
 }
 
-//todo: upgrades just like in gameSlice, powerups should be objects, implement factory for upgraades
-export const checkPowerUpCollisions = (
-  powerUps: PowerUp[],
-  playerZ: number,
-  shipX: number,
-  shipLength: number,
-  shipWidth: number,
-  upgrades: GameStoreUpgrades
-): PowerUpCollisionResult => {
+export interface CheckPowerUpCollisionsParams {
+  powerUps: PowerUp[];
+  playerZ: number;
+  shipX: number;
+  shipLength: number;
+  shipWidth: number;
+  shieldCapacity: number;
+  magnetDuration: number;
+  slowMoDuration: number;
+}
+
+export const checkPowerUpCollisions = ({
+  powerUps,
+  playerZ,
+  shipX,
+  shipLength,
+  shipWidth,
+  shieldCapacity,
+  magnetDuration,
+  slowMoDuration,
+}: CheckPowerUpCollisionsParams): PowerUpCollisionResult => {
   let shieldActive: boolean | null = null;
   let shieldStrength: number | null = null;
   let magnetActiveTime: number | null = null;
@@ -130,17 +166,13 @@ export const checkPowerUpCollisions = (
       pw.collected = true;
       if (pw.type === 'SHIELD') {
         shieldActive = true;
-        shieldStrength = upgrades.defense_shield_2 ? 2 : 1;
+        shieldStrength = shieldCapacity;
         audioManager.playShieldPickupFx();
       } else if (pw.type === 'MAGNET') {
-        const extraTime = upgrades.harvest_magnet_2 ? 3.0 : 0.0;
-        magnetActiveTime = 8.0 + extraTime;
+        magnetActiveTime = magnetDuration;
         audioManager.playMagnetPickupFx();
       } else if (pw.type === 'SLOWMO') {
-        // Temporal Warp Wing passive: 8s slow-mo duration instead of 5s
-        const baseDuration = upgrades.equippedSkin === 'temporal' ? 8.0 : 5.0;
-        const extraDuration = upgrades.engine_boost_3 ? 2.0 : 0.0;
-        slowMoActiveTime = baseDuration + extraDuration;
+        slowMoActiveTime = slowMoDuration;
         audioManager.playSlowMoPickupFx();
       }
     }

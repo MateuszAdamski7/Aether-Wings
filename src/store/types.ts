@@ -7,6 +7,7 @@ export interface Obstacle {
   width: number;
   height: number;
   type: 'WALL' | 'BARRIER' | 'ARCH';
+  destroyed?: boolean;
 }
 
 export interface Crystal {
@@ -111,9 +112,29 @@ export interface GameSlice {
   tick: (dt: number) => void;
 }
 
+export interface ShipModifier {
+  id: string;
+  name: string;
+  // Lifecycle hooks
+  onStartGame?: (state: GameStore, set: (state: Partial<GameStore>) => void) => void;
+  onTick?: (dt: number, state: GameStore, set: (state: Partial<GameStore>) => void) => void;
+
+  // Parameter modifiers
+  modifyMagnetRadius?: (radius: number, isPowerUpActive: boolean) => number;
+  modifyMagnetPowerUpDuration?: (duration: number) => number;
+  modifyShieldPowerUpCapacity?: (capacity: number) => number;
+  modifyBoostDuration?: (duration: number) => number;
+  modifyExtraBoostSpeed?: (speed: number) => number;
+  modifySlowMoPowerUpDuration?: (duration: number) => number;
+  modifyBoostChargeRate?: (rate: number) => number;
+  modifySlowMoFactor?: (factor: number) => number;
+  modifyCrystalMultiplier?: (multiplier: number) => number;
+}
+
 export interface GarageSlice {
   lifetimeCrystals: number;
   upgrades: GameStoreUpgrades;
+  activeModifiers: ShipModifier[];
   menuTab: 'PLAY' | 'GARAGE' | 'MISSIONS';
 
   buyUpgrade: (nodeId: string) => void;

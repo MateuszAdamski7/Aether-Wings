@@ -1,6 +1,9 @@
 import { useEffect } from 'react';
 import { useGameStore } from '../../store/useGameStore';
 import { ShieldAlert, Award } from 'lucide-react';
+import { 
+  UPGRADE_EFFECTS_CONFIG 
+} from '../../config/gameConfig';
 
 export default function GameHUD() {
   // Read state hooks
@@ -198,7 +201,7 @@ export default function GameHUD() {
                   <div className="w-full h-1 bg-black/40 rounded-full overflow-hidden border border-white/5">
                     <div 
                       className="h-full bg-[#00f3ff] shadow-[0_0_4px_#00f3ff] animate-pulse" 
-                      style={{ width: `${((40.0 - shieldRegenTimer) / 40.0) * 100}%` }}
+                      style={{ width: `${((UPGRADE_EFFECTS_CONFIG.shield.tier3RegenCooldown - shieldRegenTimer) / UPGRADE_EFFECTS_CONFIG.shield.tier3RegenCooldown) * 100}%` }}
                     />
                   </div>
                 </div>

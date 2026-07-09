@@ -1,6 +1,6 @@
 import type { StateCreator } from 'zustand';
 import type { GameStore, GarageSlice } from './types';
-import { NODE_COSTS, PREREQUISITES } from '../config/gameConfig';
+import { UPGRADES, rebuildActiveModifiers } from '../config/gameConfig';
 import { audioManager } from '../utils/audio';
 
 export const createGarageSlice: StateCreator<GameStore, [], [], GarageSlice> = (set, get) => {
@@ -44,33 +44,35 @@ export const createGarageSlice: StateCreator<GameStore, [], [], GarageSlice> = (
   return {
     lifetimeCrystals: initialLifetimeCrystals,
     upgrades: initialUpgrades,
+    activeModifiers: rebuildActiveModifiers(initialUpgrades),
     menuTab: 'PLAY',
 
     buyUpgrade: (nodeId) => {
       const { lifetimeCrystals, upgrades } = get();
-      const cost = NODE_COSTS[nodeId];
-      if (!cost) return;
+      const node = UPGRADES.find(n => n.id === nodeId);
+      if (!node) return;
 
       // Check if already bought
       if (upgrades[nodeId as keyof typeof upgrades]) return;
 
       // Check prerequisites
-      const prereq = PREREQUISITES[nodeId];
+      const prereq = node.prerequisite;
       if (prereq && !upgrades[prereq as keyof typeof upgrades]) return;
 
-      if (lifetimeCrystals >= cost) {
+      if (lifetimeCrystals >= node.cost) {
         const newUpgrades = {
           ...upgrades,
           [nodeId]: true
         };
-        localStorage.setItem('aether_lifetime_crystals', String(lifetimeCrystals - cost));
+        localStorage.setItem('aether_lifetime_crystals', String(lifetimeCrystals - node.cost));
         localStorage.setItem('aether_upgrades', JSON.stringify(newUpgrades));
         
         audioManager.playShieldPickupFx(); // Satisfying purchase sound
 
         set({
-          lifetimeCrystals: lifetimeCrystals - cost,
-          upgrades: newUpgrades
+          lifetimeCrystals: lifetimeCrystals - node.cost,
+          upgrades: newUpgrades,
+          activeModifiers: rebuildActiveModifiers(newUpgrades)
         });
       }
     },
@@ -88,7 +90,8 @@ export const createGarageSlice: StateCreator<GameStore, [], [], GarageSlice> = (
         localStorage.setItem('aether_upgrades', JSON.stringify(newUpgrades));
         set({
           lifetimeCrystals: lifetimeCrystals - cost,
-          upgrades: newUpgrades
+          upgrades: newUpgrades,
+          activeModifiers: rebuildActiveModifiers(newUpgrades)
         });
       }
     },
@@ -98,7 +101,10 @@ export const createGarageSlice: StateCreator<GameStore, [], [], GarageSlice> = (
       if (!upgrades.unlockedSkins.includes(skinId)) return;
       const newUpgrades = { ...upgrades, equippedSkin: skinId };
       localStorage.setItem('aether_upgrades', JSON.stringify(newUpgrades));
-      set({ upgrades: newUpgrades });
+      set({ 
+        upgrades: newUpgrades,
+        activeModifiers: rebuildActiveModifiers(newUpgrades)
+      });
     },
 
     setMenuTab: (tab) => {

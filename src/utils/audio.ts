@@ -45,7 +45,7 @@ class AudioManager {
     if (this.ctx) return;
     
     // Create audio context
-    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+    const AudioContextClass = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
     this.ctx = new AudioContextClass();
     
     // Create nodes
