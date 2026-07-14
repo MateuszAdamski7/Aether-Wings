@@ -1,4 +1,4 @@
-import type { Mission } from './types';
+import type { Mission, RunStats } from './types';
 import { MISSION_TEMPLATES } from '../config/gameConfig';
 
 export function generateRandomMission(): Mission {
@@ -15,5 +15,43 @@ export function generateRandomMission(): Mission {
     current: 0,
     reward,
     completed: false,
+  };
+}
+
+export interface MissionProgressResult {
+  nextMissions: Mission[];
+  newlyCompletedMission: Mission | null;
+}
+
+export function updateMissionProgress(
+  activeMissions: Mission[],
+  newDistance: number,
+  newRunStats: RunStats
+): MissionProgressResult {
+  const nextMissions = activeMissions.map((m) => {
+    if (m.completed) return m;
+
+    let current = m.current;
+    if (m.type === 'DISTANCE') {
+      current = Math.floor(newDistance);
+    } else if (m.type === 'CRYSTALS') {
+      current = newRunStats.crystalsCollected;
+    } else if (m.type === 'HYPERBOOST') {
+      current = newRunStats.boostsTriggered;
+    } else if (m.type === 'CRUSH_OBSTACLES') {
+      current = newRunStats.obstaclesCrushed;
+    }
+
+    const completed = current >= m.target;
+    return { ...m, current: Math.min(m.target, current), completed };
+  });
+
+  const newlyCompletedMission = nextMissions.find(
+    (m, idx) => m.completed && !activeMissions[idx].completed
+  ) || null;
+
+  return {
+    nextMissions,
+    newlyCompletedMission,
   };
 }

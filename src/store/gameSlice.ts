@@ -7,7 +7,7 @@ import {
   getSectorAtZ, 
   BOOST_DURATION,
 } from '../config/gameConfig';
-import { generateRandomMission } from './missionUtils';
+import { generateRandomMission, updateMissionProgress } from './missionUtils';
 import { audioManager } from '../utils/audio';
 import {
   updateBoostAndSpeed,
@@ -15,6 +15,32 @@ import {
   handleCollisions,
 } from './utils/gamePhysics';
 
+const getInitialGameplayState = () => ({
+  score: 0,
+  crystalCount: 0,
+  speed: INITIAL_SPEED,
+  distance: 0,
+  playerZ: 0,
+  shipX: 0,
+  targetX: 0,
+  controlMode: 'KEYBOARD' as const,
+  collisionTriggered: false,
+  obstacles: [],
+  crystals: [],
+  powerUps: [],
+  boostCharge: 0,
+  boostActive: false,
+  boostTimeRemaining: 0,
+  blastActiveTime: 0,
+  preBoostSpeed: 0,
+  shieldRegenTimer: 0,
+  quantumShieldRegenerated: false,
+  magnetActiveTime: 0,
+  slowMoActiveTime: 0,
+  currentSector: 1,
+  runStats: { crystalsCollected: 0, boostsTriggered: 0, obstaclesCrushed: 0 },
+  recentCompletedMission: null as { id: string; description: string; reward: number } | null,
+});
 
 export const createGameSlice: StateCreator<GameStore, [], [], GameSlice> = (set, get) => {
   const savedHighScore = localStorage.getItem('aether_high_score');
@@ -49,6 +75,19 @@ export const createGameSlice: StateCreator<GameStore, [], [], GameSlice> = (set,
     return Math.max(-2.8, Math.min(2.8, x));
   };
 
+  const getClosestLaneIndex = (targetX: number): number => {
+    let closestIndex = 0;
+    let minDistance = Infinity;
+    for (let i = 0; i < LANES.length; i++) {
+      const dist = Math.abs(LANES[i] - targetX);
+      if (dist < minDistance) {
+        minDistance = dist;
+        closestIndex = i;
+      }
+    }
+    return closestIndex;
+  };
+
   const getMagnetRadius = (nextMagnetActiveTime: number): number => {
     const { activeModifiers } = get();
     const baseRadius = nextMagnetActiveTime > 0 ? 6.0 : 0.0;
@@ -61,38 +100,23 @@ export const createGameSlice: StateCreator<GameStore, [], [], GameSlice> = (set,
     newRunStats: RunStats,
     lifetimeCrystals: number
   ) => {
-    let nextLifetimeCrystals = lifetimeCrystals;
-    const nextMissions = activeMissions.map((m) => {
-      if (m.completed) return m;
-
-      let current = m.current;
-      if (m.type === 'DISTANCE') {
-        current = Math.floor(newDistance);
-      } else if (m.type === 'CRYSTALS') {
-        current = newRunStats.crystalsCollected;
-      } else if (m.type === 'HYPERBOOST') {
-        current = newRunStats.boostsTriggered;
-      } else if (m.type === 'CRUSH_OBSTACLES') {
-        current = newRunStats.obstaclesCrushed;
-      }
-
-      const completed = current >= m.target;
-      return { ...m, current: Math.min(m.target, current), completed };
-    });
-
-    const newlyCompleted = nextMissions.find(
-      (m, idx) => m.completed && !activeMissions[idx].completed
+    const { nextMissions, newlyCompletedMission } = updateMissionProgress(
+      activeMissions,
+      newDistance,
+      newRunStats
     );
 
+    let nextLifetimeCrystals = lifetimeCrystals;
     let recentSuccess: { id: string; description: string; reward: number } | null = null;
-    if (newlyCompleted) {
+
+    if (newlyCompletedMission) {
       recentSuccess = {
-        id: newlyCompleted.id,
-        description: newlyCompleted.description,
-        reward: newlyCompleted.reward
+        id: newlyCompletedMission.id,
+        description: newlyCompletedMission.description,
+        reward: newlyCompletedMission.reward
       };
       audioManager.playMissionSuccessFx();
-      nextLifetimeCrystals += newlyCompleted.reward;
+      nextLifetimeCrystals += newlyCompletedMission.reward;
       saveLifetimeCrystals(nextLifetimeCrystals);
       localStorage.setItem('aether_active_missions', JSON.stringify(nextMissions));
     }
@@ -155,36 +179,13 @@ export const createGameSlice: StateCreator<GameStore, [], [], GameSlice> = (set,
       }
 
       set({
+        ...getInitialGameplayState(),
         gameState: 'PLAYING',
-        score: 0,
-        crystalCount: 0,
-        speed: INITIAL_SPEED,
-        distance: 0,
-        playerZ: 0,
-        shipX: 0,
-        targetX: 0,
-        controlMode: 'KEYBOARD',
-        collisionTriggered: false,
-        obstacles: [],
-        crystals: [],
-        powerUps: [],
         lastSpawnedZ: 150,
-        boostCharge: 0,
-        boostActive: false,
-        boostTimeRemaining: 0,
-        blastActiveTime: 0,
-        preBoostSpeed: 0,
         shieldActive,
         shieldStrength,
-        shieldRegenTimer: 0,
-        quantumShieldRegenerated: false,
-        magnetActiveTime: 0,
-        slowMoActiveTime: 0,
-        currentSector: 1,
         upgrades: newUpgrades,
-        runStats: { crystalsCollected: 0, boostsTriggered: 0, obstaclesCrushed: 0 },
         activeMissions: get().activeMissions.map((m) => ({ ...m, current: 0, completed: false })),
-        recentCompletedMission: null,
       });
 
       // Run startup modifier hooks
@@ -212,34 +213,10 @@ export const createGameSlice: StateCreator<GameStore, [], [], GameSlice> = (set,
       audioManager.setSlowMo(false);
 
       set({
+        ...getInitialGameplayState(),
         gameState: 'START',
-        score: 0,
-        crystalCount: 0,
-        speed: INITIAL_SPEED,
-        distance: 0,
-        playerZ: 0,
-        shipX: 0,
-        targetX: 0,
-        controlMode: 'KEYBOARD',
-        collisionTriggered: false,
-        obstacles: [],
-        crystals: [],
-        powerUps: [],
         lastSpawnedZ: 0,
-        boostCharge: 0,
-        boostActive: false,
-        boostTimeRemaining: 0,
-        blastActiveTime: 0,
-        preBoostSpeed: 0,
-        shieldActive: false,
-        shieldStrength: 0,
-        shieldRegenTimer: 0,
-        quantumShieldRegenerated: false,
-        magnetActiveTime: 0,
-        slowMoActiveTime: 0,
-        currentSector: 1,
         activeMissions: finalMissions,
-        recentCompletedMission: null,
       });
     },
 
@@ -248,18 +225,7 @@ export const createGameSlice: StateCreator<GameStore, [], [], GameSlice> = (set,
     moveLeft: () => {
       if (!canMove()) return;
       const { targetX } = get();
-      
-      // Find the closest discrete lane index
-      let closestLaneIndex = 0;
-      let minDistance = Infinity;
-      for (let i = 0; i < LANES.length; i++) {
-        const dist = Math.abs(LANES[i] - targetX);
-        if (dist < minDistance) {
-          minDistance = dist;
-          closestLaneIndex = i;
-        }
-      }
-
+      const closestLaneIndex = getClosestLaneIndex(targetX);
       const nextIndex = Math.max(0, closestLaneIndex - 1);
       moveTo(LANES[nextIndex], 'KEYBOARD');
     },
@@ -267,18 +233,7 @@ export const createGameSlice: StateCreator<GameStore, [], [], GameSlice> = (set,
     moveRight: () => {
       if (!canMove()) return;
       const { targetX } = get();
-      
-      // Find the closest discrete lane index
-      let closestLaneIndex = 0;
-      let minDistance = Infinity;
-      for (let i = 0; i < LANES.length; i++) {
-        const dist = Math.abs(LANES[i] - targetX);
-        if (dist < minDistance) {
-          minDistance = dist;
-          closestLaneIndex = i;
-        }
-      }
-
+      const closestLaneIndex = getClosestLaneIndex(targetX);
       const nextIndex = Math.min(LANES.length - 1, closestLaneIndex + 1);
       moveTo(LANES[nextIndex], 'KEYBOARD');
     },
