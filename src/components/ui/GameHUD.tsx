@@ -83,7 +83,7 @@ export default function GameHUD() {
             <div className="border-t border-white/10 pt-1.5 w-full min-w-[130px]">
               <div className="flex justify-between items-baseline mb-1">
                 <span className="text-[8px] uppercase tracking-widest text-gray-400 display-font">Boost Energy</span>
-                <span className="display-font text-[9px] font-bold text-[#ffe600] text-glow-yellow">{boostCharge}/10</span>
+                <span className="display-font text-[9px] font-bold text-[#ffe600] text-glow-yellow">{Math.floor(boostCharge)}/10</span>
               </div>
               <div className="w-full h-1 bg-black/40 rounded-full overflow-hidden border border-white/5 flex gap-[1px]">
                 {Array.from({ length: 10 }).map((_, i) => (

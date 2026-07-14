@@ -441,7 +441,7 @@ export const createGameSlice: StateCreator<GameStore, [], [], GameSlice> = (set,
         (m, mod) => mod.modifyCrystalMultiplier ? mod.modifyCrystalMultiplier(m) : m,
         1
       );
-      const crystalsEarnedThisFrame = crystalsCollectedThisFrame * crystalMultiplier;
+      const crystalsEarnedThisFrame = Math.round(crystalsCollectedThisFrame * crystalMultiplier);
 
       if (!nextBoostActive && crystalsCollectedThisFrame > 0) {
         const boostChargeRate = state.activeModifiers.reduce(
