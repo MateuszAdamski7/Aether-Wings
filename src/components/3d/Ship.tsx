@@ -55,7 +55,7 @@ export default function Ship() {
   const ShipComponent = skinConfig.ShipComponent;
 
   return (
-    <group ref={meshRef} position={[0, 0, 0]}>
+    <group ref={meshRef} position={[0, 0.45, 0]}>
       {/* Sonic Blast Wave Sphere */}
       <mesh ref={blastMeshRef}>
         <sphereGeometry args={[1, 16, 16]} />

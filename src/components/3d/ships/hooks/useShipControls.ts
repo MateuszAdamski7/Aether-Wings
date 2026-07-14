@@ -76,7 +76,7 @@ export function useShipControls(
       // Pitch (X rotation) - subtle bobbing up and down
       if (gameState === 'PLAYING') {
         const bobbing = Math.sin(state.clock.getElapsedTime() * 4) * 0.03;
-        meshRef.current.position.y = bobbing;
+        meshRef.current.position.y = 0.45 + bobbing;
         meshRef.current.rotation.x = bobbing * 0.5;
       }
     }
