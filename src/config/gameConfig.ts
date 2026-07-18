@@ -5,3 +5,5 @@ export * from './missions';
 export * from './sectors';
 export * from './colors';
 export * from './modifiers';
+export * from './powerUpConfig';
+

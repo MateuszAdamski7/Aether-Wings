@@ -26,8 +26,9 @@ export default function Ship() {
   // Get game store state (only subscribe to static/rare elements to prevent React re-renders)
   const gameState = useGameStore((state) => state.gameState);
   const collisionTriggered = useGameStore((state) => state.collisionTriggered);
-  const shieldActive = useGameStore((state) => state.shieldActive);
-  const shieldStrength = useGameStore((state) => state.shieldStrength);
+  const isPowerUpActive = useGameStore((state) => state.isPowerUpActive);
+  const shieldStrength = useGameStore((state) => state.getPowerUpStrength('SHIELD'));
+  const shieldActive = isPowerUpActive('SHIELD');
   const equippedSkin = useGameStore((state) => state.upgrades.equippedSkin);
   const skinConfig = SKINS_VISUAL_REGISTRY[equippedSkin] || SKINS_VISUAL_REGISTRY.default;
 

@@ -1,5 +1,6 @@
 import { LANES, PALETTE } from '../../config/gameConfig';
 import type { Obstacle, Crystal, PowerUp } from '../types';
+import { POWER_UP_REGISTRY } from '../../config/powerUpConfig';
 
 //todo: maybe obstacles, powerups and crystals should be seperated; create config file for obstacles, powerups and crystals
 
@@ -95,7 +96,7 @@ export const spawnChunk = (
 
   // Spawn track power-up collectibles with 12% probability
   if (Math.random() < 0.12) {
-    const pTypes: ('SHIELD' | 'MAGNET' | 'SLOWMO')[] = ['SHIELD', 'MAGNET', 'SLOWMO'];
+    const pTypes = Object.keys(POWER_UP_REGISTRY);
     const randomType = pTypes[Math.floor(Math.random() * pTypes.length)];
     const randomLane = LANES[Math.floor(Math.random() * LANES.length)];
     powerUps.push({

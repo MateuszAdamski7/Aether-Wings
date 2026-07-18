@@ -18,11 +18,17 @@ export interface Crystal {
   color: string;
 }
 
+export interface ActivePowerUp {
+  timeRemaining: number;
+  maxDuration: number;
+  strength?: number;
+}
+
 export interface PowerUp {
   id: string;
   x: number;
   z: number;
-  type: 'SHIELD' | 'MAGNET' | 'SLOWMO';
+  type: string;
   collected: boolean;
 }
 
@@ -89,12 +95,9 @@ export interface GameSlice {
   preBoostSpeed: number;
 
   // Active states
-  shieldActive: boolean;
-  shieldStrength: number;
   shieldRegenTimer: number;
   quantumShieldRegenerated: boolean;
-  magnetActiveTime: number;
-  slowMoActiveTime: number;
+  activePowerUps: Record<string, ActivePowerUp>;
   currentSector: number;
   runStats: RunStats;
 
@@ -110,6 +113,11 @@ export interface GameSlice {
   triggerCollision: () => void;
   activateBoost: () => void;
   tick: (dt: number) => void;
+
+  // Power-Up selectors
+  isPowerUpActive: (type: string) => boolean;
+  getPowerUpTimeRemaining: (type: string) => number;
+  getPowerUpStrength: (type: string) => number;
 }
 
 export interface ShipModifier {
@@ -121,13 +129,11 @@ export interface ShipModifier {
 
   // Parameter modifiers
   modifyMagnetRadius?: (radius: number, isPowerUpActive: boolean) => number;
-  modifyMagnetPowerUpDuration?: (duration: number) => number;
-  modifyShieldPowerUpCapacity?: (capacity: number) => number;
+  modifyPowerUpDuration?: (type: string, duration: number) => number;
+  modifyPowerUpCapacity?: (type: string, capacity: number) => number;
   modifyBoostDuration?: (duration: number) => number;
   modifyExtraBoostSpeed?: (speed: number) => number;
-  modifySlowMoPowerUpDuration?: (duration: number) => number;
   modifyBoostChargeRate?: (rate: number) => number;
-  modifySlowMoFactor?: (factor: number) => number;
   modifyCrystalMultiplier?: (multiplier: number) => number;
 }
 

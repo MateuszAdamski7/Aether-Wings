@@ -50,10 +50,10 @@ export function useShipAnimations(
 
   useFrame((state, delta) => {
     // Read state non-reactively inside frame loop
-    const { boostActive, slowMoActiveTime, boostTimeRemaining, crystalCount, crystals, playerZ } = useGameStore.getState();
+    const { boostActive, boostTimeRemaining, crystalCount, crystals, playerZ } = useGameStore.getState();
 
-    // Limit delta to avoid huge physics jumps on frame lag. Scale by 0.65 during slow-mo.
-    const dt = Math.min(delta, 0.1) * (slowMoActiveTime > 0 ? 0.65 : 1.0);
+    // Limit delta to avoid huge physics jumps on frame lag.
+    const dt = Math.min(delta, 0.1);
 
     if (!collisionTriggered) {
       collisionTime.current = 0;

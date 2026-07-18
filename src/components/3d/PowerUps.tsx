@@ -30,9 +30,7 @@ function PowerUpInstance({ powerUp }: { powerUp: PowerUp }) {
     const currentPhaseOffset = phaseOffset.current;
 
     const time = state.clock.getElapsedTime();
-    const { slowMoActiveTime } = useGameStore.getState();
-    const slowMoActive = slowMoActiveTime > 0;
-    const dt = Math.min(delta, 0.1) * (slowMoActive ? 0.65 : 1.0);
+    const dt = Math.min(delta, 0.1);
 
     if (meshRef.current) {
       // Rotation & Bobbing
@@ -107,33 +105,6 @@ function PowerUpInstance({ powerUp }: { powerUp: PowerUp }) {
         </group>
       )}
 
-      {powerUp.type === 'SLOWMO' && (
-        <group>
-          {/* Hourglass double cone */}
-          <group position={[0, 0.08, 0]}>
-            <mesh castShadow>
-              <coneGeometry args={[0.16, 0.22, 6]} />
-              <meshStandardMaterial 
-                color={color} 
-                emissive={color} 
-                emissiveIntensity={1.2} 
-                flatShading={true}
-              />
-            </mesh>
-          </group>
-          <group position={[0, -0.08, 0]} rotation={[Math.PI, 0, 0]}>
-            <mesh castShadow>
-              <coneGeometry args={[0.16, 0.22, 6]} />
-              <meshStandardMaterial 
-                color={color} 
-                emissive={color} 
-                emissiveIntensity={1.2} 
-                flatShading={true}
-              />
-            </mesh>
-          </group>
-        </group>
-      )}
 
       {/* Ground indicator halo */}
       <mesh ref={ringRef} position={[0, -0.4, 0]} rotation={[-Math.PI / 2, 0, 0]}>

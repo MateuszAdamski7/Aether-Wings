@@ -1,4 +1,4 @@
-import type { Obstacle, Crystal, PowerUp, ShipModifier } from '../types';
+import type { Obstacle, Crystal, PowerUp, ShipModifier, ActivePowerUp } from '../types';
 import { SPAWN_INTERVAL, CLEANUP_THRESHOLD_Z } from '../../config/gameConfig';
 import { audioManager } from '../../utils/audio';
 import { spawnChunk } from './obstacleSpawner';
@@ -154,10 +154,7 @@ export interface CollisionTickParams {
   playerZ: number;
   shipX: number;
   boostActive: boolean;
-  shieldActive: boolean;
-  shieldStrength: number;
-  magnetActiveTime: number;
-  slowMoActiveTime: number;
+  activePowerUps: Record<string, ActivePowerUp>;
   currentSpeed: number;
   physicsDt: number;
   getMagnetRadius: (nextMagnetActiveTime: number) => number;
@@ -166,14 +163,11 @@ export interface CollisionTickParams {
 
 export interface CollisionTickResult {
   collisionDetected: boolean;
-  shieldActive: boolean;
-  shieldStrength: number;
+  activePowerUps: Record<string, ActivePowerUp>;
   obstaclesDestroyedCount: number;
   newObstacles: Obstacle[];
   crystalsCollectedCount: number;
   newCrystals: Crystal[];
-  magnetActiveTime: number;
-  slowMoActiveTime: number;
   newPowerUps: PowerUp[];
 }
 
@@ -184,10 +178,7 @@ export const handleCollisions = ({
   playerZ,
   shipX,
   boostActive,
-  shieldActive,
-  shieldStrength,
-  magnetActiveTime,
-  slowMoActiveTime,
+  activePowerUps,
   currentSpeed,
   physicsDt,
   getMagnetRadius,
@@ -199,6 +190,10 @@ export const handleCollisions = ({
   let newObstacles = [...obstacles];
   const newCrystals = [...crystals];
   const newPowerUps = [...powerUps];
+
+  const nextActivePowerUps = { ...activePowerUps };
+  const shieldActive = !!nextActivePowerUps['SHIELD'];
+  const shieldStrength = nextActivePowerUps['SHIELD']?.strength ?? 0;
 
   const obsResult = checkObstacleCollisions({
     obstacles: newObstacles,
@@ -214,26 +209,35 @@ export const handleCollisions = ({
   if (obsResult.collisionDetected) {
     return {
       collisionDetected: true,
-      shieldActive,
-      shieldStrength,
+      activePowerUps,
       obstaclesDestroyedCount: 0,
       newObstacles,
       crystalsCollectedCount: 0,
       newCrystals,
-      magnetActiveTime,
-      slowMoActiveTime,
       newPowerUps,
     };
   }
 
-  let nextShieldActive = obsResult.shieldActive;
-  let nextShieldStrength = obsResult.shieldStrength;
+  // Update shield status inside activePowerUps
+  if (shieldActive) {
+    if (obsResult.shieldActive) {
+      nextActivePowerUps['SHIELD'] = {
+        timeRemaining: Infinity,
+        maxDuration: Infinity,
+        strength: obsResult.shieldStrength,
+      };
+    } else {
+      delete nextActivePowerUps['SHIELD'];
+    }
+  }
+
   const obstaclesDestroyedCount = obsResult.obstaclesDestroyed;
 
   if (obstaclesDestroyedCount > 0) {
     newObstacles = newObstacles.filter((o) => !o.destroyed);
   }
 
+  const magnetActiveTime = nextActivePowerUps['MAGNET']?.timeRemaining ?? 0;
   const magnetRadius = getMagnetRadius(magnetActiveTime);
 
   const cryResult = checkCrystalCollisions({
@@ -248,54 +252,25 @@ export const handleCollisions = ({
   });
   const crystalsCollectedCount = cryResult.crystalsCollected;
 
-  const shieldCapacity = activeModifiers.reduce(
-    (c, mod) => mod.modifyShieldPowerUpCapacity ? mod.modifyShieldPowerUpCapacity(c) : c,
-    1
-  );
-  const magnetDuration = activeModifiers.reduce(
-    (d, mod) => mod.modifyMagnetPowerUpDuration ? mod.modifyMagnetPowerUpDuration(d) : d,
-    8.0
-  );
-  const slowMoDuration = activeModifiers.reduce(
-    (d, mod) => mod.modifySlowMoPowerUpDuration ? mod.modifySlowMoPowerUpDuration(d) : d,
-    5.0
-  );
-
   const pwResult = checkPowerUpCollisions({
     powerUps: newPowerUps,
     playerZ,
     shipX,
     shipLength,
     shipWidth,
-    shieldCapacity,
-    magnetDuration,
-    slowMoDuration,
+    activeModifiers,
   });
 
-  let nextMagnetActiveTime = magnetActiveTime;
-  let nextSlowMoActiveTime = slowMoActiveTime;
-
-  if (pwResult.shieldActive !== null) {
-    nextShieldActive = pwResult.shieldActive;
-    nextShieldStrength = pwResult.shieldStrength ?? 1;
-  }
-  if (pwResult.magnetActiveTime !== null) {
-    nextMagnetActiveTime = pwResult.magnetActiveTime;
-  }
-  if (pwResult.slowMoActiveTime !== null) {
-    nextSlowMoActiveTime = pwResult.slowMoActiveTime;
-  }
+  // Merge newly picked up power-ups into active effects registry
+  Object.assign(nextActivePowerUps, pwResult.newActivePowerUps);
 
   return {
     collisionDetected: false,
-    shieldActive: nextShieldActive,
-    shieldStrength: nextShieldStrength,
+    activePowerUps: nextActivePowerUps,
     obstaclesDestroyedCount,
     newObstacles,
     crystalsCollectedCount,
     newCrystals,
-    magnetActiveTime: nextMagnetActiveTime,
-    slowMoActiveTime: nextSlowMoActiveTime,
     newPowerUps,
   };
 };

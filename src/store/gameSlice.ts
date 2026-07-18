@@ -1,5 +1,5 @@
 import type { StateCreator } from 'zustand';
-import type { GameStore, GameSlice, Mission, RunStats } from './types';
+import type { GameStore, GameSlice, Mission, RunStats, ActivePowerUp } from './types';
 import { 
   LANES, 
   INITIAL_SPEED, 
@@ -35,8 +35,7 @@ const getInitialGameplayState = () => ({
   preBoostSpeed: 0,
   shieldRegenTimer: 0,
   quantumShieldRegenerated: false,
-  magnetActiveTime: 0,
-  slowMoActiveTime: 0,
+  activePowerUps: {} as Record<string, ActivePowerUp>,
   currentSector: 1,
   runStats: { crystalsCollected: 0, boostsTriggered: 0, obstaclesCrushed: 0 },
   recentCompletedMission: null as { id: string; description: string; reward: number } | null,
@@ -156,34 +155,36 @@ export const createGameSlice: StateCreator<GameStore, [], [], GameSlice> = (set,
     boostTimeRemaining: 0,
     blastActiveTime: 0,
     preBoostSpeed: 0,
-    shieldActive: false,
-    shieldStrength: 0,
     shieldRegenTimer: 0,
     quantumShieldRegenerated: false,
-    magnetActiveTime: 0,
-    slowMoActiveTime: 0,
+    activePowerUps: {},
     currentSector: 1,
     runStats: { crystalsCollected: 0, boostsTriggered: 0, obstaclesCrushed: 0 },
 
     startGame: () => {
       const { upgrades, activeModifiers } = get();
-      let shieldActive = false;
-      let shieldStrength = 0;
+      let initialShield: ActivePowerUp | null = null;
       let newUpgrades = upgrades;
 
       if (upgrades.shieldBought) {
-        shieldActive = true;
-        shieldStrength = 1;
+        initialShield = {
+          timeRemaining: Infinity,
+          maxDuration: Infinity,
+          strength: 1
+        };
         newUpgrades = { ...upgrades, shieldBought: false };
         localStorage.setItem('aether_upgrades', JSON.stringify(newUpgrades));
       }
 
+      const gameplayState = getInitialGameplayState();
+      if (initialShield) {
+        gameplayState.activePowerUps['SHIELD'] = initialShield;
+      }
+
       set({
-        ...getInitialGameplayState(),
+        ...gameplayState,
         gameState: 'PLAYING',
         lastSpawnedZ: 150,
-        shieldActive,
-        shieldStrength,
         upgrades: newUpgrades,
         activeMissions: get().activeMissions.map((m) => ({ ...m, current: 0, completed: false })),
       });
@@ -199,6 +200,18 @@ export const createGameSlice: StateCreator<GameStore, [], [], GameSlice> = (set,
       get().tick(0);
     },
 
+    isPowerUpActive: (type) => {
+      const active = get().activePowerUps[type];
+      if (!active) return false;
+      return active.timeRemaining > 0 || (active.strength !== undefined && active.strength > 0);
+    },
+    getPowerUpTimeRemaining: (type) => {
+      return get().activePowerUps[type]?.timeRemaining ?? 0;
+    },
+    getPowerUpStrength: (type) => {
+      return get().activePowerUps[type]?.strength ?? 0;
+    },
+
     resetGame: () => {
       // Regenerate completed missions
       const finalMissions = get().activeMissions.map((m) => {
@@ -208,9 +221,6 @@ export const createGameSlice: StateCreator<GameStore, [], [], GameSlice> = (set,
         return m;
       });
       localStorage.setItem('aether_active_missions', JSON.stringify(finalMissions));
-
-      // Reset audio speed setting
-      audioManager.setSlowMo(false);
 
       set({
         ...getInitialGameplayState(),
@@ -286,18 +296,24 @@ export const createGameSlice: StateCreator<GameStore, [], [], GameSlice> = (set,
       const state = get();
       if (state.gameState !== 'PLAYING') return;
 
-      // 0. Slow-Mo Time Dilation
-      const isSlowMo = state.slowMoActiveTime > 0;
-      audioManager.setSlowMo(isSlowMo);
+      const physicsDt = dt;
 
-      const slowMoFactor = state.activeModifiers.reduce(
-        (f, mod) => mod.modifySlowMoFactor ? mod.modifySlowMoFactor(f) : f,
-        0.65
-      );
-      const physicsDt = dt * (isSlowMo ? slowMoFactor : 1.0);
-
-      const decayedMagnetTime = Math.max(0, state.magnetActiveTime - dt);
-      const decayedSlowMoTime = Math.max(0, state.slowMoActiveTime - dt);
+      // Decay active power-up timers dynamically using dt
+      const nextActivePowerUps: Record<string, ActivePowerUp> = {};
+      for (const type of Object.keys(state.activePowerUps)) {
+        const active = state.activePowerUps[type];
+        if (active.timeRemaining === Infinity) {
+          nextActivePowerUps[type] = active;
+        } else {
+          const timeLeft = Math.max(0, active.timeRemaining - dt);
+          if (timeLeft > 0) {
+            nextActivePowerUps[type] = {
+              ...active,
+              timeRemaining: timeLeft,
+            };
+          }
+        }
+      }
 
       const boostSpeedRes = updateBoostAndSpeed({
         boostActive: state.boostActive,
@@ -354,10 +370,7 @@ export const createGameSlice: StateCreator<GameStore, [], [], GameSlice> = (set,
         playerZ: newPlayerZ,
         shipX: state.shipX,
         boostActive: nextBoostActive,
-        shieldActive: state.shieldActive,
-        shieldStrength: state.shieldStrength,
-        magnetActiveTime: decayedMagnetTime,
-        slowMoActiveTime: decayedSlowMoTime,
+        activePowerUps: nextActivePowerUps,
         currentSpeed,
         physicsDt,
         getMagnetRadius,
@@ -372,10 +385,7 @@ export const createGameSlice: StateCreator<GameStore, [], [], GameSlice> = (set,
       newObstacles = collisionRes.newObstacles;
       const newCrystals = collisionRes.newCrystals;
       const newPowerUps = collisionRes.newPowerUps;
-      const nextShieldActive = collisionRes.shieldActive;
-      const shieldStrength = collisionRes.shieldStrength;
-      const nextMagnetActiveTime = collisionRes.magnetActiveTime;
-      const nextSlowMoActiveTime = collisionRes.slowMoActiveTime;
+      const finalActivePowerUps = collisionRes.activePowerUps;
       const obstaclesDestroyedThisFrameCount = collisionRes.obstaclesDestroyedCount;
       const crystalsCollectedThisFrame = collisionRes.crystalsCollectedCount;
 
@@ -453,10 +463,7 @@ export const createGameSlice: StateCreator<GameStore, [], [], GameSlice> = (set,
         targetX: nextTargetX,
         preBoostSpeed: nextPreBoostSpeed,
 
-        shieldActive: nextShieldActive,
-        shieldStrength,
-        magnetActiveTime: nextMagnetActiveTime,
-        slowMoActiveTime: nextSlowMoActiveTime,
+        activePowerUps: finalActivePowerUps,
         currentSector,
         activeMissions: nextMissions,
         lifetimeCrystals: nextLifetimeCrystals,

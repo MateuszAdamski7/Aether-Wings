@@ -17,10 +17,10 @@ export function useShipControls(
     if (!meshRef.current) return;
 
     // Read fast-changing variables non-reactively from the store
-    const { targetX, playerZ, boostActive, slowMoActiveTime } = useGameStore.getState();
+    const { targetX, playerZ, boostActive } = useGameStore.getState();
 
-    // Limit delta to avoid huge physics jumps on frame lag. Scale by 0.65 during slow-mo.
-    const dt = Math.min(delta, 0.1) * (slowMoActiveTime > 0 ? 0.65 : 1.0);
+    // Limit delta to avoid huge physics jumps on frame lag.
+    const dt = Math.min(delta, 0.1);
 
     // 1. INPUT INTERPRETATION (Mouse tracking)
     // Check if the mouse has moved significantly (meaning the user is active with mouse)

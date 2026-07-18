@@ -114,14 +114,14 @@ export const UPGRADES: UpgradeNode[] = [
   },
   {
     id: 'engine_boost_3',
-    name: 'Time Dilator',
-    description: 'Increases Slow-Mo active time by 2.0s, and boosts ship velocity by an additional 10 units/s during Hyperboost.',
+    name: 'Boost Accelerator',
+    description: 'Boosts ship velocity by an additional 10 units/s during Hyperboost.',
     cost: 100,
     branch: 'ENGINE',
     tier: 3,
     prerequisite: 'engine_boost_2',
-    icon: 'Hourglass',
-    effectLabel: 'Slowmo +2s / Hyperboost Speed +10',
+    icon: 'Zap',
+    effectLabel: 'Hyperboost Speed +10',
     enabled: true
   }
 ];
@@ -149,7 +149,6 @@ export const UPGRADE_EFFECTS_CONFIG = {
     tier1BoostDuration: 6.0,
     tier2ChargeRateMultiplier: 1.2,
     baseChargeRate: 1.0,
-    tier3ExtraSlowMoDuration: 2.0,
     baseExtraBoostSpeed: 25,
     tier3ExtraBoostSpeed: 35,
   },

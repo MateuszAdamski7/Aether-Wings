@@ -77,9 +77,8 @@ export default function Environment() {
 
   // Update shader uniforms and followGroup Z position
   useFrame((state, delta) => {
-    const { playerZ, slowMoActiveTime } = useGameStore.getState();
-    const slowMoActive = slowMoActiveTime > 0;
-    const dt = Math.min(delta, 0.1) * (slowMoActive ? 0.65 : 1.0);
+    const { playerZ } = useGameStore.getState();
+    const dt = Math.min(delta, 0.1);
 
     const { currentSector, nextSector, t } = getSectorTransition(playerZ);
 
@@ -207,9 +206,8 @@ function MountainInstance({ mountain }: MountainProps) {
   useFrame((_state, delta) => {
     if (!meshRef.current) return;
     
-    const { playerZ, slowMoActiveTime } = useGameStore.getState();
-    const slowMoActive = slowMoActiveTime > 0;
-    const dt = Math.min(delta, 0.1) * (slowMoActive ? 0.65 : 1.0);
+    const { playerZ } = useGameStore.getState();
+    const dt = Math.min(delta, 0.1);
     
     // Relative scrolling position
     let relativeZ = mountain.zOffset - (playerZ % totalLength);

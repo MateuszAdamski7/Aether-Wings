@@ -9,9 +9,16 @@ export const UPGRADE_MODIFIERS: Record<string, ShipModifier[]> = {
       id: 'defense_shield_1',
       name: 'Shield Deflector',
       onStartGame: (state, set) => {
-        set({ shieldActive: true, shieldStrength: Math.max(state.shieldStrength, UPGRADE_EFFECTS_CONFIG.shield.tier1Capacity) });
+        const nextActivePowerUps = { ...state.activePowerUps };
+        nextActivePowerUps['SHIELD'] = {
+          timeRemaining: Infinity,
+          maxDuration: Infinity,
+          strength: Math.max(state.getPowerUpStrength('SHIELD'), UPGRADE_EFFECTS_CONFIG.shield.tier1Capacity)
+        };
+        set({ activePowerUps: nextActivePowerUps });
       },
-      modifyShieldPowerUpCapacity: (capacity) => Math.max(capacity, UPGRADE_EFFECTS_CONFIG.shield.tier1Capacity),
+      modifyPowerUpCapacity: (type, capacity) => 
+        type === 'SHIELD' ? Math.max(capacity, UPGRADE_EFFECTS_CONFIG.shield.tier1Capacity) : capacity,
     }
   ],
   defense_shield_2: [
@@ -19,9 +26,16 @@ export const UPGRADE_MODIFIERS: Record<string, ShipModifier[]> = {
       id: 'defense_shield_2',
       name: 'Shield Fortification',
       onStartGame: (state, set) => {
-        set({ shieldActive: true, shieldStrength: Math.max(state.shieldStrength, UPGRADE_EFFECTS_CONFIG.shield.tier2Capacity) });
+        const nextActivePowerUps = { ...state.activePowerUps };
+        nextActivePowerUps['SHIELD'] = {
+          timeRemaining: Infinity,
+          maxDuration: Infinity,
+          strength: Math.max(state.getPowerUpStrength('SHIELD'), UPGRADE_EFFECTS_CONFIG.shield.tier2Capacity)
+        };
+        set({ activePowerUps: nextActivePowerUps });
       },
-      modifyShieldPowerUpCapacity: (capacity) => Math.max(capacity, UPGRADE_EFFECTS_CONFIG.shield.tier2Capacity),
+      modifyPowerUpCapacity: (type, capacity) => 
+        type === 'SHIELD' ? Math.max(capacity, UPGRADE_EFFECTS_CONFIG.shield.tier2Capacity) : capacity,
     }
   ],
   defense_shield_3: [
@@ -29,14 +43,21 @@ export const UPGRADE_MODIFIERS: Record<string, ShipModifier[]> = {
       id: 'defense_shield_3',
       name: 'Emergency Nano-Regen',
       onTick: (dt, state, set) => {
-        if (!state.shieldActive) {
+        const shieldActive = state.isPowerUpActive('SHIELD');
+        if (!shieldActive) {
           const currentTimer = state.shieldRegenTimer ?? 0;
           if (currentTimer <= 0) {
             set({ shieldRegenTimer: UPGRADE_EFFECTS_CONFIG.shield.tier3RegenCooldown });
           } else {
             const nextTimer = Math.max(0, currentTimer - dt);
             if (nextTimer <= 0) {
-              set({ shieldActive: true, shieldStrength: 1, shieldRegenTimer: 0 });
+              const nextActivePowerUps = { ...state.activePowerUps };
+              nextActivePowerUps['SHIELD'] = {
+                timeRemaining: Infinity,
+                maxDuration: Infinity,
+                strength: 1
+              };
+              set({ activePowerUps: nextActivePowerUps, shieldRegenTimer: 0 });
               audioManager.playShieldPickupFx();
             } else {
               set({ shieldRegenTimer: nextTimer });
@@ -64,8 +85,8 @@ export const UPGRADE_MODIFIERS: Record<string, ShipModifier[]> = {
       name: 'Magnet Amplification',
       modifyMagnetRadius: (radius, isPowerUpActive) => 
         isPowerUpActive ? radius : Math.max(radius, UPGRADE_EFFECTS_CONFIG.magnet.tier2Radius),
-      modifyMagnetPowerUpDuration: (duration) => 
-        duration + UPGRADE_EFFECTS_CONFIG.magnet.tier2ExtraDuration,
+      modifyPowerUpDuration: (type, duration) => 
+        type === 'MAGNET' ? duration + UPGRADE_EFFECTS_CONFIG.magnet.tier2ExtraDuration : duration,
     }
   ],
   harvest_magnet_3: [
@@ -95,9 +116,7 @@ export const UPGRADE_MODIFIERS: Record<string, ShipModifier[]> = {
   engine_boost_3: [
     {
       id: 'engine_boost_3',
-      name: 'Time Dilator',
-      modifySlowMoPowerUpDuration: (duration) => 
-        duration + UPGRADE_EFFECTS_CONFIG.engine.tier3ExtraSlowMoDuration,
+      name: 'Boost Accelerator',
       modifyExtraBoostSpeed: (speed) => 
         Math.max(speed, UPGRADE_EFFECTS_CONFIG.engine.tier3ExtraBoostSpeed),
     }
@@ -118,13 +137,25 @@ export const SKIN_MODIFIERS: Record<string, ShipModifier[]> = {
       id: 'skin_quantum',
       name: 'Quantum Vanguard Passive',
       onStartGame: (state, set) => {
-        set({ shieldActive: true, shieldStrength: Math.max(state.shieldStrength, 1) });
+        const nextActivePowerUps = { ...state.activePowerUps };
+        nextActivePowerUps['SHIELD'] = {
+          timeRemaining: Infinity,
+          maxDuration: Infinity,
+          strength: Math.max(state.getPowerUpStrength('SHIELD'), 1)
+        };
+        set({ activePowerUps: nextActivePowerUps });
       },
       onTick: (_dt, state, set) => {
-        if (!state.shieldActive && state.playerZ >= SKIN_EFFECTS_CONFIG.quantum.shieldRegenMinZ && !state.quantumShieldRegenerated) {
+        const shieldActive = state.isPowerUpActive('SHIELD');
+        if (!shieldActive && state.playerZ >= SKIN_EFFECTS_CONFIG.quantum.shieldRegenMinZ && !state.quantumShieldRegenerated) {
+          const nextActivePowerUps = { ...state.activePowerUps };
+          nextActivePowerUps['SHIELD'] = {
+            timeRemaining: Infinity,
+            maxDuration: Infinity,
+            strength: Math.max(state.getPowerUpStrength('SHIELD'), 1)
+          };
           set({
-            shieldActive: true,
-            shieldStrength: Math.max(state.shieldStrength, 1),
+            activePowerUps: nextActivePowerUps,
             quantumShieldRegenerated: true
           });
           audioManager.playShieldPickupFx();
@@ -136,10 +167,11 @@ export const SKIN_MODIFIERS: Record<string, ShipModifier[]> = {
     {
       id: 'skin_temporal',
       name: 'Temporal Warp Wing Passive',
-      modifySlowMoFactor: () => SKIN_EFFECTS_CONFIG.temporal.slowMoFactor,
-      modifySlowMoPowerUpDuration: (duration) => 
+      modifyPowerUpDuration: (type, duration) => 
         // Temporal has a default 8s powerup base duration instead of 5s
-        duration + (SKIN_EFFECTS_CONFIG.temporal.powerUpBaseDuration - SKIN_EFFECTS_CONFIG.default.powerUpBaseDuration)
+        type === 'MAGNET'
+          ? duration + (SKIN_EFFECTS_CONFIG.temporal.powerUpBaseDuration - SKIN_EFFECTS_CONFIG.default.powerUpBaseDuration)
+          : duration
     }
   ]
 };

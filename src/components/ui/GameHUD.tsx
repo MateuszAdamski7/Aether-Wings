@@ -2,7 +2,8 @@ import { useEffect } from 'react';
 import { useGameStore } from '../../store/useGameStore';
 import { ShieldAlert, Award } from 'lucide-react';
 import { 
-  UPGRADE_EFFECTS_CONFIG 
+  UPGRADE_EFFECTS_CONFIG,
+  POWER_UP_REGISTRY
 } from '../../config/gameConfig';
 
 export default function GameHUD() {
@@ -21,10 +22,9 @@ export default function GameHUD() {
   const boostTimeRemaining = useGameStore((state) => state.boostTimeRemaining);
 
   // Upgrades & Power-Up subscriptions
-  const shieldActive = useGameStore((state) => state.shieldActive);
+  const activePowerUps = useGameStore((state) => state.activePowerUps);
+  const isPowerUpActive = useGameStore((state) => state.isPowerUpActive);
   const shieldRegenTimer = useGameStore((state) => state.shieldRegenTimer);
-  const magnetActiveTime = useGameStore((state) => state.magnetActiveTime);
-  const slowMoActiveTime = useGameStore((state) => state.slowMoActiveTime);
   const upgrades = useGameStore((state) => state.upgrades);
   
   // Mission notifications
@@ -162,52 +162,63 @@ export default function GameHUD() {
         {/* Bottom-Left: Speedometer & Active Power-up timer bars */}
         <div className="flex flex-col gap-2.5 w-full max-w-[220px] pointer-events-auto">
           {/* Active Power-Ups overlay */}
-          {(magnetActiveTime > 0 || slowMoActiveTime > 0 || (upgrades.defense_shield_3 && !shieldActive && shieldRegenTimer > 0)) && (
-            <div className="flex flex-col gap-1.5 w-full">
-              {magnetActiveTime > 0 && (
-                <div className="glass-panel px-3 py-1.5 border-glow-magenta bg-pink-950/20 text-xs flex flex-col gap-1">
-                  <div className="flex justify-between items-center text-[8px] uppercase font-bold text-[#ff007f] display-font">
-                    <span>Magnet Sweep</span>
-                    <span>{magnetActiveTime.toFixed(1)}s</span>
+          {(() => {
+            const shieldActive = isPowerUpActive('SHIELD');
+            const hasActiveTimedPowerUps = Object.entries(activePowerUps).some(
+              ([type, data]) => type !== 'SHIELD' && (data.timeRemaining ?? 0) > 0
+            );
+            const showShieldRegen = upgrades.defense_shield_3 && !shieldActive && shieldRegenTimer > 0;
+
+            if (!hasActiveTimedPowerUps && !showShieldRegen) return null;
+
+            return (
+              <div className="flex flex-col gap-1.5 w-full">
+                {Object.entries(activePowerUps).map(([type, data]) => {
+                  if (type === 'SHIELD') return null;
+                  if ((data.timeRemaining ?? 0) <= 0) return null;
+
+                  const config = POWER_UP_REGISTRY[type];
+                  if (!config) return null;
+
+                  const percent = (data.timeRemaining / (data.maxDuration || config.baseDuration || 1)) * 100;
+
+                  return (
+                    <div key={type} className={`glass-panel px-3 py-1.5 ${config.glowColorClass} ${config.bgClass} text-xs flex flex-col gap-1`}>
+                      <div className="flex justify-between items-center text-[8px] uppercase font-bold display-font" style={{ color: config.textColor }}>
+                        <span>{config.name}</span>
+                        <span>{data.timeRemaining.toFixed(1)}s</span>
+                      </div>
+                      <div className="w-full h-1 bg-black/40 rounded-full overflow-hidden border border-white/5">
+                        <div 
+                          className="h-full shadow-[0_0_4px_currentColor]" 
+                          style={{ 
+                            width: `${percent}%`,
+                            backgroundColor: config.color,
+                            color: config.color
+                          }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {showShieldRegen && (
+                  <div className="glass-panel px-3 py-1.5 border-glow-cyan bg-cyan-950/20 text-xs flex flex-col gap-1">
+                    <div className="flex justify-between items-center text-[8px] uppercase font-bold text-[#00f3ff] display-font">
+                      <span>Shield Recharging</span>
+                      <span>{shieldRegenTimer.toFixed(1)}s</span>
+                    </div>
+                    <div className="w-full h-1 bg-black/40 rounded-full overflow-hidden border border-white/5">
+                      <div 
+                        className="h-full bg-[#00f3ff] shadow-[0_0_4px_#00f3ff] animate-pulse" 
+                        style={{ width: `${((UPGRADE_EFFECTS_CONFIG.shield.tier3RegenCooldown - shieldRegenTimer) / UPGRADE_EFFECTS_CONFIG.shield.tier3RegenCooldown) * 100}%` }}
+                      />
+                    </div>
                   </div>
-                  <div className="w-full h-1 bg-black/40 rounded-full overflow-hidden border border-white/5">
-                    <div 
-                      className="h-full bg-[#ff007f] shadow-[0_0_4px_#ff007f]" 
-                      style={{ width: `${(magnetActiveTime / 8.0) * 100}%` }}
-                    />
-                  </div>
-                </div>
-              )}
-              {slowMoActiveTime > 0 && (
-                <div className="glass-panel px-3 py-1.5 border-glow-yellow bg-yellow-950/20 text-xs flex flex-col gap-1">
-                  <div className="flex justify-between items-center text-[8px] uppercase font-bold text-[#ffe600] display-font">
-                    <span>Slow-Mo Warp</span>
-                    <span>{slowMoActiveTime.toFixed(1)}s</span>
-                  </div>
-                  <div className="w-full h-1 bg-black/40 rounded-full overflow-hidden border border-white/5">
-                    <div 
-                      className="h-full bg-[#ffe600] shadow-[0_0_4px_#ffe600]" 
-                      style={{ width: `${(slowMoActiveTime / 5.0) * 100}%` }}
-                    />
-                  </div>
-                </div>
-              )}
-              {upgrades.defense_shield_3 && !shieldActive && shieldRegenTimer > 0 && (
-                <div className="glass-panel px-3 py-1.5 border-glow-cyan bg-cyan-950/20 text-xs flex flex-col gap-1">
-                  <div className="flex justify-between items-center text-[8px] uppercase font-bold text-[#00f3ff] display-font">
-                    <span>Shield Recharging</span>
-                    <span>{shieldRegenTimer.toFixed(1)}s</span>
-                  </div>
-                  <div className="w-full h-1 bg-black/40 rounded-full overflow-hidden border border-white/5">
-                    <div 
-                      className="h-full bg-[#00f3ff] shadow-[0_0_4px_#00f3ff] animate-pulse" 
-                      style={{ width: `${((UPGRADE_EFFECTS_CONFIG.shield.tier3RegenCooldown - shieldRegenTimer) / UPGRADE_EFFECTS_CONFIG.shield.tier3RegenCooldown) * 100}%` }}
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
+                )}
+              </div>
+            );
+          })()}
 
           {/* Speedometer panel */}
           <div className="glass-panel p-4 border-glow-cyan">

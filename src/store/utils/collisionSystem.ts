@@ -1,5 +1,6 @@
-import type { Obstacle, Crystal, PowerUp } from '../types';
+import type { Obstacle, Crystal, PowerUp, ShipModifier } from '../types';
 import { audioManager } from '../../utils/audio';
+import { POWER_UP_REGISTRY } from '../../config/powerUpConfig';
 
 export interface ObstacleCollisionResult {
   collisionDetected: boolean;
@@ -125,10 +126,7 @@ export const checkCrystalCollisions = ({
 };
 
 export interface PowerUpCollisionResult {
-  shieldActive: boolean | null;
-  shieldStrength: number | null;
-  magnetActiveTime: number | null;
-  slowMoActiveTime: number | null;
+  newActivePowerUps: Record<string, { timeRemaining: number; maxDuration: number; strength?: number }>;
 }
 
 export interface CheckPowerUpCollisionsParams {
@@ -137,9 +135,7 @@ export interface CheckPowerUpCollisionsParams {
   shipX: number;
   shipLength: number;
   shipWidth: number;
-  shieldCapacity: number;
-  magnetDuration: number;
-  slowMoDuration: number;
+  activeModifiers: ShipModifier[];
 }
 
 export const checkPowerUpCollisions = ({
@@ -148,14 +144,9 @@ export const checkPowerUpCollisions = ({
   shipX,
   shipLength,
   shipWidth,
-  shieldCapacity,
-  magnetDuration,
-  slowMoDuration,
+  activeModifiers,
 }: CheckPowerUpCollisionsParams): PowerUpCollisionResult => {
-  let shieldActive: boolean | null = null;
-  let shieldStrength: number | null = null;
-  let magnetActiveTime: number | null = null;
-  let slowMoActiveTime: number | null = null;
+  const newActivePowerUps: Record<string, { timeRemaining: number; maxDuration: number; strength?: number }> = {};
 
   for (const pw of powerUps) {
     if (pw.collected) continue;
@@ -164,24 +155,36 @@ export const checkPowerUpCollisions = ({
 
     if (zDiff < (shipLength / 2 + 0.8) && xDiff < (0.8 + shipWidth / 2)) {
       pw.collected = true;
-      if (pw.type === 'SHIELD') {
-        shieldActive = true;
-        shieldStrength = shieldCapacity;
-        audioManager.playShieldPickupFx();
-      } else if (pw.type === 'MAGNET') {
-        magnetActiveTime = magnetDuration;
-        audioManager.playMagnetPickupFx();
-      } else if (pw.type === 'SLOWMO') {
-        slowMoActiveTime = slowMoDuration;
-        audioManager.playSlowMoPickupFx();
+      const config = POWER_UP_REGISTRY[pw.type];
+      if (config) {
+        // Resolve dynamic duration via modifiers
+        const duration = activeModifiers.reduce(
+          (d, mod) => mod.modifyPowerUpDuration ? mod.modifyPowerUpDuration(pw.type, d) : d,
+          config.baseDuration
+        );
+
+        // Resolve dynamic capacity/strength if SHIELD
+        let strength: number | undefined = undefined;
+        if (pw.type === 'SHIELD') {
+          strength = activeModifiers.reduce(
+            (c, mod) => mod.modifyPowerUpCapacity ? mod.modifyPowerUpCapacity(pw.type, c) : c,
+            1
+          );
+        }
+
+        // Play audio effect
+        config.pickupAudio();
+
+        newActivePowerUps[pw.type] = {
+          timeRemaining: duration,
+          maxDuration: duration,
+          strength,
+        };
       }
     }
   }
 
   return {
-    shieldActive,
-    shieldStrength,
-    magnetActiveTime,
-    slowMoActiveTime,
+    newActivePowerUps,
   };
 };
