@@ -1,8 +1,16 @@
 import { useRef } from 'react';
-import { useFrame } from '@react-three/fiber';
-import { Sparkles } from '@react-three/drei';
+import { useFrame, useThree } from '@react-three/fiber';
+import { Sparkles, type SparklesProps } from '@react-three/drei';
 import * as THREE from 'three';
 import { useGameStore } from '../../store/useGameStore';
+import { renderPlayer } from '../../game';
+import { sampleEnvColors, getMountainWireColor, ENV_PALETTE } from '../../config/sectorPalettes';
+
+// Module-level scratch Color instances (zero allocations in frame loop)
+const _targetBottom = new THREE.Color();
+const _targetTop = new THREE.Color();
+const _targetFogColor = new THREE.Color();
+const _defaultBgColor = new THREE.Color('#03030c');
 
 // Custom shader for the classic Synthwave Sun
 const SunShader = {
@@ -49,6 +57,32 @@ const SunShader = {
   `
 };
 
+/**
+ * drei's sparkle shader divides by the pixel's distance to the point center, which is 0 when a pixel lands exactly on it.
+ * The resulting infinite alpha blends into NaN on the HIGH quality half-float buffer, and the mipmap bloom spreads that one
+ * pixel over the whole screen: a single black frame. Clamping alpha to [0, 1] matches what the 8-bit LOW buffer does anyway.
+ */
+function clampSparkleAlpha(shader: THREE.WebGLProgramParametersWithUniforms): void {
+  shader.fragmentShader = shader.fragmentShader
+    .replace('0.05 / distanceToCenter', '0.05 / max(distanceToCenter, 0.001)')
+    .replace('vec4(vColor, strength * vOpacity)', 'vec4(vColor, clamp(strength * vOpacity, 0.0, 1.0))');
+}
+
+/** drei <Sparkles> with its default material swapped for one with the NaN-safe shader */
+function SafeSparkles(props: SparklesProps) {
+  const dpr = useThree((state) => state.viewport.dpr);
+  return (
+    <Sparkles {...props}>
+      <sparklesImplMaterial transparent depthWrite={false} pixelRatio={dpr} onBeforeCompile={clampSparkleAlpha} />
+    </Sparkles>
+  );
+}
+
+// Stars fill a box (relative to the player) above eye level and ahead of the camera: below the horizon they cluttered
+// the track, and next to the camera they grew into large blurry blobs (point size scales with 1 / distance)
+const STARFIELD_POSITION: [number, number, number] = [0, 14, 70]; // y 4..24, z 10..130
+const STARFIELD_SCALE: [number, number, number] = [60, 20, 120];
+
 const MOUNTAINS = Array.from({ length: 12 }).map((_, i) => {
   const isRight = i % 2 === 0;
   const x = isRight ? 12 : -12;
@@ -71,57 +105,16 @@ export default function Environment() {
   const graphicsQuality = useGameStore((state) => state.graphicsQuality);
   
   // Colors for star sparkles in each sector biome
-  const starColor1 = currentSector === 1 ? '#00f3ff' : currentSector === 2 ? '#39ff14' : '#ff0000';
-  const starColor2 = currentSector === 1 ? '#ff007f' : currentSector === 2 ? '#ffe600' : '#7a00ff';
+  const starColor1 = currentSector === 1 ? ENV_PALETTE.s1.stars1 : currentSector === 2 ? ENV_PALETTE.s2.stars1 : ENV_PALETTE.s3.stars1;
+  const starColor2 = currentSector === 1 ? ENV_PALETTE.s1.stars2 : currentSector === 2 ? ENV_PALETTE.s2.stars2 : ENV_PALETTE.s3.stars2;
 
   // Update shader uniforms and followGroup Z position
   useFrame((state, delta) => {
-    const { playerZ, slowMoActiveTime } = useGameStore.getState();
-    const slowMoActive = slowMoActiveTime > 0;
-    const dt = Math.min(delta, 0.1) * (slowMoActive ? 0.65 : 1.0);
+    const playerZ = renderPlayer.z;
+    const dt = Math.min(delta, 0.1);
 
-    // Continuous sector-based color interpolation based on playerZ coordinate
-    const s1Bottom = new THREE.Color('#ff8c00');
-    const s1Top = new THREE.Color('#ff0080');
-    const s1Fog = new THREE.Color('#03030c');
-
-    const s2Bottom = new THREE.Color('#ff5500');
-    const s2Top = new THREE.Color('#ffe600');
-    const s2Fog = new THREE.Color('#011408');
-
-    const s3Bottom = new THREE.Color('#7a00ff');
-    const s3Top = new THREE.Color('#ff003c');
-    const s3Fog = new THREE.Color('#090214');
-
-    const targetBottom = new THREE.Color();
-    const targetTop = new THREE.Color();
-    const targetFogColor = new THREE.Color();
-
-    if (playerZ < 1000) {
-      targetBottom.copy(s1Bottom);
-      targetTop.copy(s1Top);
-      targetFogColor.copy(s1Fog);
-    } else if (playerZ < 1300) {
-      // Transition Sector 1 -> 2 over 300 meters
-      const t = (playerZ - 1000) / 300;
-      targetBottom.lerpColors(s1Bottom, s2Bottom, t);
-      targetTop.lerpColors(s1Top, s2Top, t);
-      targetFogColor.lerpColors(s1Fog, s2Fog, t);
-    } else if (playerZ < 2600) {
-      targetBottom.copy(s2Bottom);
-      targetTop.copy(s2Top);
-      targetFogColor.copy(s2Fog);
-    } else if (playerZ < 2900) {
-      // Transition Sector 2 -> 3 over 300 meters
-      const t = (playerZ - 2600) / 300;
-      targetBottom.lerpColors(s2Bottom, s3Bottom, t);
-      targetTop.lerpColors(s2Top, s3Top, t);
-      targetFogColor.lerpColors(s2Fog, s3Fog, t);
-    } else {
-      targetBottom.copy(s3Bottom);
-      targetTop.copy(s3Top);
-      targetFogColor.copy(s3Fog);
-    }
+    // Continuous sector-based color interpolation based on playerZ coordinate (zero allocations)
+    sampleEnvColors(playerZ, _targetBottom, _targetTop, _targetFogColor);
 
     if (sunMaterialRef.current) {
       // Animate stripes
@@ -129,15 +122,15 @@ export default function Environment() {
 
       const currentBottom = sunMaterialRef.current.uniforms.uColorBottom.value as THREE.Color;
       const currentTop = sunMaterialRef.current.uniforms.uColorTop.value as THREE.Color;
-      currentBottom.copy(targetBottom);
-      currentTop.copy(targetTop);
+      currentBottom.copy(_targetBottom);
+      currentTop.copy(_targetTop);
     }
 
     if (state.scene.fog) {
-      state.scene.fog.color.lerp(targetFogColor, dt * 3.0);
+      state.scene.fog.color.lerp(_targetFogColor, dt * 3.0);
     }
     // Sync background clear color with fog
-    state.scene.background = state.scene.fog?.color ?? new THREE.Color('#03030c');
+    state.scene.background = state.scene.fog?.color ?? _defaultBgColor;
 
     if (followGroupRef.current) {
       followGroupRef.current.position.z = playerZ;
@@ -163,19 +156,19 @@ export default function Environment() {
       {/* Group that moves along with the player position to keep elements in view */}
       <group ref={followGroupRef}>
         {/* Floating Retro Stars/Particles */}
-        <Sparkles
+        <SafeSparkles
           count={graphicsQuality === 'HIGH' ? 250 : 80}
-          scale={[60, 30, 180]}
-          position={[0, 10, 40]} // Relative to group
+          scale={STARFIELD_SCALE}
+          position={STARFIELD_POSITION}
           size={2.5}
           speed={0.3}
           noise={1}
           color={starColor1}
         />
-        <Sparkles
+        <SafeSparkles
           count={graphicsQuality === 'HIGH' ? 200 : 60}
-          scale={[60, 30, 180]}
-          position={[0, 10, 40]} // Relative to group
+          scale={STARFIELD_SCALE}
+          position={STARFIELD_POSITION}
           size={2.0}
           speed={0.4}
           noise={1.5}
@@ -233,9 +226,8 @@ function MountainInstance({ mountain }: MountainProps) {
   useFrame((_state, delta) => {
     if (!meshRef.current) return;
     
-    const { playerZ, slowMoActiveTime } = useGameStore.getState();
-    const slowMoActive = slowMoActiveTime > 0;
-    const dt = Math.min(delta, 0.1) * (slowMoActive ? 0.65 : 1.0);
+    const playerZ = renderPlayer.z;
+    const dt = Math.min(delta, 0.1);
     
     // Relative scrolling position
     let relativeZ = mountain.zOffset - (playerZ % totalLength);
@@ -257,24 +249,14 @@ function MountainInstance({ mountain }: MountainProps) {
     if (pyramidGroupRef.current) pyramidGroupRef.current.visible = isPyramid;
     if (towerGroupRef.current) towerGroupRef.current.visible = !isPyramid;
 
-    // Smoothly update neon outline colors at biome boundaries
+    // Smoothly update neon outline colors at biome boundaries (zero allocations)
+    const targetColor = getMountainWireColor(absoluteZ, mountain.x > 0);
     if (isPyramid) {
       if (pyramidWireRef.current) {
-        // Sector 1: Left Cyan, Right Pink
-        const targetColor = new THREE.Color(mountain.x > 0 ? '#ff007f' : '#00f3ff');
         pyramidWireRef.current.color.lerp(targetColor, dt * 4.0);
       }
     } else {
       if (towerWireRef.current) {
-        // Sector 2/3 colors
-        const targetColor = new THREE.Color();
-        if (absoluteZ >= 2800) {
-          // Sector 3: Left Red, Right Violet
-          targetColor.setStyle(mountain.x > 0 ? '#9d00ff' : '#ff0000');
-        } else {
-          // Sector 2: Left Green, Right Yellow
-          targetColor.setStyle(mountain.x > 0 ? '#ffe600' : '#39ff14');
-        }
         towerWireRef.current.color.lerp(targetColor, dt * 4.0);
       }
     }

@@ -7,14 +7,13 @@ import {
   Sparkles, 
   Coins, 
   Gauge, 
-  Zap, 
-  Hourglass 
+  Zap 
 } from 'lucide-react';
 
 export const LANES = [-2, 0, 2];
 export const SPAWN_INTERVAL = 35; // Spawn an obstacle group every 35 units
 export const INITIAL_SPEED = 28;
-export const MAX_SPEED = 70;
+export const MAX_SPEED = Infinity; // Uncapped maximum speed
 
 export interface MissionTemplate {
   type: 'DISTANCE' | 'CRYSTALS' | 'HYPERBOOST' | 'CRUSH_OBSTACLES';
@@ -30,8 +29,21 @@ export const MISSION_TEMPLATES: MissionTemplate[] = [
   { type: 'CRUSH_OBSTACLES', description: 'Smash $target obstacles in Hyperboost', targets: [3, 6, 9], rewardBase: 15 }
 ];
 
+export type UpgradeId =
+  | 'defense_shield_1'
+  | 'defense_shield_2'
+  | 'defense_shield_3'
+  | 'harvest_magnet_1'
+  | 'harvest_magnet_2'
+  | 'harvest_magnet_3'
+  | 'engine_boost_1'
+  | 'engine_boost_2'
+  | 'engine_boost_3';
+
+export type SkinId = 'vortex' | 'quantum' | 'temporal';
+
 export interface Skin {
-  id: string;
+  id: SkinId;
   name: string;
   color: string;
   cost: number;
@@ -39,24 +51,19 @@ export interface Skin {
 }
 
 export const SKINS: Skin[] = [
-  { id: 'pink', name: 'Laser Pink', color: '#ff0055', cost: 0, description: '' },
-  { id: 'cyan', name: 'Cyan Flare', color: '#00f3ff', cost: 40, description: '' },
-  { id: 'yellow', name: 'Solar Yellow', color: '#ffe600', cost: 40, description: '' },
-  { id: 'green', name: 'Acid Green', color: '#39ff14', cost: 40, description: '' },
-  { id: 'purple', name: 'Nebula Violet', color: '#9d00ff', cost: 40, description: '' },
   { id: 'vortex', name: 'Vortex Singularity', color: '#00f3ff', cost: 150, description: 'Passive: 2x Crystals & Boost charge' },
   { id: 'quantum', name: 'Quantum Vanguard', color: '#00ffff', cost: 150, description: 'Passive: Start shield & auto-regen' },
-  { id: 'temporal', name: 'Temporal Warp Wing', color: '#ffe600', cost: 150, description: 'Passive: 0.45x Slow-Mo & 8s powerups' }
+  { id: 'temporal', name: 'Temporal Warp Wing', color: '#ffe600', cost: 150, description: 'Passive: Extended Magnet & Powerups' }
 ];
 
 export interface UpgradeNode {
-  id: string;
+  id: UpgradeId;
   name: string;
   description: string;
   cost: number;
   branch: 'DEFENSE' | 'HARVESTING' | 'ENGINE';
   tier: number;
-  prerequisite: string | null;
+  prerequisite: UpgradeId | null;
   icon: LucideIcon;
   effectLabel: string;
 }
@@ -155,37 +162,29 @@ export const UPGRADE_NODES: UpgradeNode[] = [
   },
   {
     id: 'engine_boost_3',
-    name: 'Time Dilator',
-    description: 'Increases Slow-Mo active time by 2.0s, and boosts ship velocity by an additional 10 units/s during Hyperboost.',
+    name: 'Warp Thruster',
+    description: 'Boosts ship velocity by an additional 10 units/s during Hyperboost.',
     cost: 100,
     branch: 'ENGINE',
     tier: 3,
     prerequisite: 'engine_boost_2',
-    icon: Hourglass,
-    effectLabel: 'Slowmo +2s / Hyperboost Speed +10'
+    icon: Zap,
+    effectLabel: 'Hyperboost Speed +10'
   }
 ];
 
-export const NODE_COSTS: Record<string, number> = {
-  defense_shield_1: 25,
-  defense_shield_2: 55,
-  defense_shield_3: 95,
-  harvest_magnet_1: 20,
-  harvest_magnet_2: 50,
-  harvest_magnet_3: 90,
-  engine_boost_1: 30,
-  engine_boost_2: 60,
-  engine_boost_3: 100,
-};
+export const NODE_COSTS: Record<UpgradeId, number> = UPGRADE_NODES.reduce(
+  (acc, node) => {
+    acc[node.id] = node.cost;
+    return acc;
+  },
+  {} as Record<UpgradeId, number>
+);
 
-export const PREREQUISITES: Record<string, string | null> = {
-  defense_shield_1: null,
-  defense_shield_2: 'defense_shield_1',
-  defense_shield_3: 'defense_shield_2',
-  harvest_magnet_1: null,
-  harvest_magnet_2: 'harvest_magnet_1',
-  harvest_magnet_3: 'harvest_magnet_2',
-  engine_boost_1: null,
-  engine_boost_2: 'engine_boost_1',
-  engine_boost_3: 'engine_boost_2',
-};
+export const PREREQUISITES: Record<UpgradeId, UpgradeId | null> = UPGRADE_NODES.reduce(
+  (acc, node) => {
+    acc[node.id] = node.prerequisite;
+    return acc;
+  },
+  {} as Record<UpgradeId, UpgradeId | null>
+);

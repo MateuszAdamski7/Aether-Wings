@@ -6,71 +6,18 @@ import {
   Volume2, 
   VolumeX, 
   Keyboard, 
-  MousePointerClick, 
   Award, 
   Rocket, 
   Wrench, 
-  Palette,
   Lock,
-  Cpu
+  Cpu,
+  Activity,
+  Hand
 } from 'lucide-react';
 
+import { musicPlayer } from '../../utils/musicPlayer';
+
 function ShipSvgIcon({ id, color }: { id: string; color: string }) {
-  if (id === 'pink') {
-    return (
-      <svg viewBox="0 0 100 100" width="100%" height="100%" stroke={color} fill="none" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ filter: `drop-shadow(0 0 3px ${color}80)` }}>
-        <path d="M50,15 L65,60 L50,48 L35,60 Z" fill={`${color}20`} />
-        <path d="M35,42 L10,65 L35,58" />
-        <path d="M65,42 L90,65 L65,58" />
-        <ellipse cx="50" cy="38" rx="3.5" ry="9" fill={color} />
-      </svg>
-    );
-  }
-  if (id === 'cyan') {
-    return (
-      <svg viewBox="0 0 100 100" width="100%" height="100%" stroke={color} fill="none" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ filter: `drop-shadow(0 0 3px ${color}80)` }}>
-        <path d="M42,35 L42,10 L47,24 L50,24 L53,24 L58,10 L58,35" />
-        <path d="M42,35 L50,55 L58,35 Z" fill={`${color}20`} />
-        <path d="M42,42 C25,40 15,55 15,70 C25,65 42,54 42,54" />
-        <path d="M58,42 C75,40 85,55 85,70 C75,65 58,54 58,54" />
-        <ellipse cx="50" cy="38" rx="4" ry="10" fill={color} />
-      </svg>
-    );
-  }
-  if (id === 'yellow') {
-    return (
-      <svg viewBox="0 0 100 100" width="100%" height="100%" stroke={color} fill="none" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ filter: `drop-shadow(0 0 3px ${color}80)` }}>
-        <path d="M38,25 L50,15 L62,25 L62,55 L50,65 L38,55 Z" fill={`${color}20`} />
-        <path d="M38,30 L8,30 L8,50 L38,50 M18,30 L18,50 M28,30 L28,50" />
-        <path d="M62,30 L92,30 L92,50 M82,30 L82,50 M72,30 L72,50" />
-        <polygon points="45,30 55,30 55,42 45,42" fill={color} />
-      </svg>
-    );
-  }
-  if (id === 'green') {
-    return (
-      <svg viewBox="0 0 100 100" width="100%" height="100%" stroke={color} fill="none" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ filter: `drop-shadow(0 0 3px ${color}80)` }}>
-        <path d="M50,12 C40,20 37,40 37,55 C43,58 50,60 50,60 C50,60 57,58 63,55 C63,40 60,20 50,12 Z" fill={`${color}15`} />
-        <path d="M37,45 C24,48 8,60 10,72 C16,65 29,58 37,55" />
-        <path d="M63,45 C76,48 92,60 90,72 C84,65 71,58 63,55" />
-        <circle cx="44" cy="28" r="2.5" fill={color} stroke="none" />
-        <circle cx="56" cy="28" r="2.5" fill={color} stroke="none" />
-        <path d="M50,22 C48,26 50,38 50,42" strokeWidth="1.5" />
-      </svg>
-    );
-  }
-  if (id === 'purple') {
-    return (
-      <svg viewBox="0 0 100 100" width="100%" height="100%" stroke={color} fill="none" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ filter: `drop-shadow(0 0 3px ${color}80)` }}>
-        <path d="M50,15 L64,45 L50,60 L36,45 Z" fill={`${color}20`} />
-        <path d="M36,40 L6,55 L36,50" />
-        <path d="M64,40 L94,55 L64,50" />
-        <circle cx="18" cy="50" r="6.5" strokeWidth="1.5" />
-        <circle cx="82" cy="50" r="6.5" strokeWidth="1.5" />
-        <path d="M46,30 L54,30 L56,40 L44,40 Z" fill={color} />
-      </svg>
-    );
-  }
   if (id === 'vortex') {
     return (
       <svg viewBox="0 0 100 100" width="100%" height="100%" stroke={color} fill="none" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ filter: `drop-shadow(0 0 3px ${color}80)` }}>
@@ -115,13 +62,13 @@ function ShipSvgIcon({ id, color }: { id: string; color: string }) {
 export default function MainMenu() {
   const activeTab = useGameStore((state) => state.menuTab);
   const setActiveTab = useGameStore((state) => state.setMenuTab);
-  const [garageTab, setGarageTab] = useState<'SHIPS' | 'UPGRADES' | 'VISUALS'>('SHIPS');
+  const [garageTab, setGarageTab] = useState<'SHIPS' | 'UPGRADES'>('SHIPS');
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
 
   const renderConnector = (sourceNodeId: string, color: string) => {
     const isSourceUnlocked = upgrades[sourceNodeId as keyof typeof upgrades];
     return (
-      <div className="flex items-center justify-center w-8 shrink-0">
+      <div className="flex items-center justify-center w-5 sm:w-8 shrink-0">
         <div 
           className="h-[2px] w-full transition-all duration-300"
           style={{ 
@@ -160,6 +107,7 @@ export default function MainMenu() {
     }
 
     const handleClick = () => {
+      setHoveredNode(node.id); // Touch screens have no hover, so a tap also shows the details
       if (isUnlocked) return;
       if (!hasPrereq) return;
       if (!canAfford) return;
@@ -194,11 +142,14 @@ export default function MainMenu() {
   };
 
   const startGame = useGameStore((state) => state.startGame);
+  const sceneReady = useGameStore((state) => state.sceneReady);
   const highScore = useGameStore((state) => state.highScore);
   const isMuted = useGameStore((state) => state.isMuted);
   const toggleMute = useGameStore((state) => state.toggleMute);
   const graphicsQuality = useGameStore((state) => state.graphicsQuality);
   const setGraphicsQuality = useGameStore((state) => state.setGraphicsQuality);
+  const showPerfStats = useGameStore((state) => state.showPerfStats);
+  const togglePerfStats = useGameStore((state) => state.togglePerfStats);
 
   const toggleGraphics = () => {
     const nextQuality = graphicsQuality === 'HIGH' ? 'LOW' : 'HIGH';
@@ -217,15 +168,31 @@ export default function MainMenu() {
   const activeMissions = useGameStore((state) => state.activeMissions);
 
   const handleStart = () => {
-    audioManager.startMusic();
+    musicPlayer.start();
     audioManager.playStartFx();
     startGame();
   };
 
   return (
-    <div className="absolute inset-0 flex flex-col items-center justify-center p-6 z-10 select-none crt-flicker">
+    <div className="absolute inset-0 flex flex-col items-center justify-center hud-container z-10 select-none crt-flicker">
       {/* Top bar controls */}
-      <div className="absolute top-6 right-6 flex items-center gap-4">
+      <div className="flex items-center gap-3 self-end mb-3 md:absolute md:top-6 md:right-6 md:mb-0 md:gap-4 safe-top-right">
+        {/* Performance Telemetry Toggle (F3) */}
+        <button
+          onClick={togglePerfStats}
+          className={`p-2.5 glass-panel text-white hover:text-white transition-all pointer-events-auto flex items-center justify-center ${
+            showPerfStats ? 'border-glow-cyan text-glow-cyan' : 'border-white/10 opacity-60'
+          }`}
+          style={{ 
+            borderRadius: '50%', 
+            border: showPerfStats ? '1px solid rgba(0, 243, 255, 0.4)' : '1px solid rgba(255, 255, 255, 0.1)',
+            boxShadow: showPerfStats ? '0 0 8px rgba(0, 243, 255, 0.25)' : 'none'
+          }}
+          title={showPerfStats ? 'Hide Performance Telemetry (F3)' : 'Show Performance Telemetry (F3)'}
+        >
+          <Activity size={16} className={showPerfStats ? 'text-[#00f3ff]' : 'text-gray-400'} />
+        </button>
+
         {/* Graphics Quality Toggle */}
         <button
           onClick={toggleGraphics}
@@ -254,20 +221,10 @@ export default function MainMenu() {
       </div>
 
       {/* Main Panel */}
-      <div 
-        className="glass-panel p-8 flex flex-col items-center border-glow-purple pointer-events-auto"
-        style={{
-          width: '760px',
-          height: '640px',
-          transform: 'scale(min(1, calc((100vw - 48px) / 760), calc((100vh - 48px) / 640)))',
-          transformOrigin: 'center',
-          overflow: 'hidden',
-          flexShrink: 0
-        }}
-      >
+      <div className="main-menu-panel glass-panel p-5 sm:p-8 flex flex-col items-center border-glow-purple pointer-events-auto">
         {/* Title */}
         <h1 
-          className="display-font text-4xl md:text-5xl font-black mb-1 text-glow-magenta glitch text-center"
+          className="display-font text-2xl sm:text-4xl md:text-5xl font-black mb-1 text-glow-magenta glitch text-center"
           data-text="AETHER WINGS"
           style={{ letterSpacing: '4px', color: '#ff007f' }}
         >
@@ -278,10 +235,10 @@ export default function MainMenu() {
         </p>
 
         {/* Tab Selection */}
-        <div className="flex gap-4 mb-6 border-b border-white/10 pb-2 w-full justify-center">
+        <div className="flex gap-1 sm:gap-4 mb-6 border-b border-white/10 pb-2 w-full justify-center">
           <button 
             onClick={() => setActiveTab('PLAY')}
-            className={`px-4 py-1 display-font text-xs font-bold uppercase tracking-widest transition-all ${
+            className={`px-3 sm:px-4 py-1 display-font text-xs font-bold uppercase tracking-widest transition-all ${
               activeTab === 'PLAY' ? 'text-[#00f3ff] border-b-2 border-[#00f3ff] text-glow-cyan' : 'text-gray-400 hover:text-white'
             }`}
           >
@@ -289,7 +246,7 @@ export default function MainMenu() {
           </button>
           <button 
             onClick={() => setActiveTab('GARAGE')}
-            className={`px-4 py-1 display-font text-xs font-bold uppercase tracking-widest transition-all ${
+            className={`px-3 sm:px-4 py-1 display-font text-xs font-bold uppercase tracking-widest transition-all ${
               activeTab === 'GARAGE' ? 'text-[#ff007f] border-b-2 border-[#ff007f] text-glow-magenta' : 'text-gray-400 hover:text-white'
             }`}
           >
@@ -297,7 +254,7 @@ export default function MainMenu() {
           </button>
           <button 
             onClick={() => setActiveTab('MISSIONS')}
-            className={`px-4 py-1 display-font text-xs font-bold uppercase tracking-widest transition-all ${
+            className={`px-3 sm:px-4 py-1 display-font text-xs font-bold uppercase tracking-widest transition-all ${
               activeTab === 'MISSIONS' ? 'text-[#ffe600] border-b-2 border-[#ffe600] text-glow-yellow' : 'text-gray-400 hover:text-white'
             }`}
           >
@@ -317,8 +274,18 @@ export default function MainMenu() {
             </div>
 
             {/* Instructions */}
-            <div className="grid grid-cols-2 gap-4 w-full text-left mb-8 text-gray-300">
-              <div className="p-3 bg-black/40 rounded-lg border border-white/5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 w-full text-left mb-8 text-gray-300">
+              {/* Touch devices steer by swipe; the keyboard hint only applies to fine pointers */}
+              <div className="hidden pointer-coarse:block sm:col-span-2 p-3 bg-black/40 rounded-lg border border-white/5">
+                <div className="flex items-center gap-2 mb-1.5 text-[#00f3ff]">
+                  <Hand size={14} />
+                  <h3 className="display-font text-xs font-bold uppercase tracking-wider">Touch</h3>
+                </div>
+                <p className="text-[10px] leading-normal text-gray-400">
+                  <b className="text-white">Swipe left / right</b> to change lanes. Tap the <b className="text-white">BOOST</b> button for Hyperboost when fully charged.
+                </p>
+              </div>
+              <div className="pointer-coarse:hidden sm:col-span-2 p-3 bg-black/40 rounded-lg border border-white/5">
                 <div className="flex items-center gap-2 mb-1.5 text-[#00f3ff]">
                   <Keyboard size={14} />
                   <h3 className="display-font text-xs font-bold uppercase tracking-wider">Keyboard</h3>
@@ -327,23 +294,15 @@ export default function MainMenu() {
                   Steer with <b className="text-white">A / D</b> or <b className="text-white">← / →</b>. Press <b className="text-white">SPACE</b> for Hyperboost when fully charged.
                 </p>
               </div>
-              <div className="p-3 bg-black/40 rounded-lg border border-white/5">
-                <div className="flex items-center gap-2 mb-1.5 text-[#ff007f]">
-                  <MousePointerClick size={14} />
-                  <h3 className="display-font text-xs font-bold uppercase tracking-wider">Mouse</h3>
-                </div>
-                <p className="text-[10px] leading-normal text-gray-400">
-                  Move cursor left/right. The ship follows fluidly. Spacebar triggers hyperboost.
-                </p>
-              </div>
             </div>
 
             {/* Start Button */}
             <button 
               onClick={handleStart}
-              className="btn-cyber btn-cyber-magenta px-10 py-3.5 text-md w-full max-w-xs justify-center"
+              disabled={!sceneReady}
+              className="btn-cyber btn-cyber-magenta px-10 py-3.5 text-md w-full max-w-xs justify-center disabled:opacity-50 disabled:cursor-wait"
             >
-              START ENGINES
+              {sceneReady ? 'START ENGINES' : 'LOADING ENGINE…'}
             </button>
 
             <div className="text-[9px] uppercase tracking-widest text-gray-500 mt-6 display-font">
@@ -386,18 +345,6 @@ export default function MainMenu() {
               >
                 <Wrench size={12} />
                 Upgrades
-              </button>
-              <button
-                onClick={() => setGarageTab('VISUALS')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 display-font text-[10px] font-bold uppercase tracking-wider transition-all border ${
-                  garageTab === 'VISUALS' 
-                    ? 'border-[#ffe600] text-[#ffe600] bg-[#ffe600]/10 shadow-[0_0_8px_rgba(255,230,0,0.2)] text-glow-yellow' 
-                    : 'border-white/5 text-gray-400 hover:text-white hover:border-white/20 bg-black/20'
-                }`}
-                style={{ borderRadius: '4px' }}
-              >
-                <Palette size={12} />
-                Visuals
               </button>
             </div>
 
@@ -450,8 +397,8 @@ export default function MainMenu() {
                 {/* Connected Skill Tree Card Grid */}
                 <div className="flex flex-col gap-3.5 bg-black/20 p-4 border border-white/5 rounded-xl">
                   {/* Defense Branch Row */}
-                  <div className="flex items-center gap-4">
-                    <div className="w-28 display-font text-[9px] font-black uppercase text-[#ff007f] tracking-widest text-glow-magenta shrink-0">
+                  <div className="flex items-center gap-2 sm:gap-4">
+                    <div className="w-16 sm:w-28 display-font text-[9px] font-black uppercase text-[#ff007f] tracking-widest text-glow-magenta shrink-0">
                       Defense
                     </div>
                     <div className="flex items-center gap-0">
@@ -464,8 +411,8 @@ export default function MainMenu() {
                   </div>
 
                   {/* Harvesting Branch Row */}
-                  <div className="flex items-center gap-4">
-                    <div className="w-28 display-font text-[9px] font-black uppercase text-[#00f3ff] tracking-widest text-glow-cyan shrink-0">
+                  <div className="flex items-center gap-2 sm:gap-4">
+                    <div className="w-16 sm:w-28 display-font text-[9px] font-black uppercase text-[#00f3ff] tracking-widest text-glow-cyan shrink-0">
                       Harvest
                     </div>
                     <div className="flex items-center gap-0">
@@ -478,8 +425,8 @@ export default function MainMenu() {
                   </div>
 
                   {/* Engine Performance Row */}
-                  <div className="flex items-center gap-4">
-                    <div className="w-28 display-font text-[9px] font-black uppercase text-[#ffe600] tracking-widest text-glow-yellow shrink-0">
+                  <div className="flex items-center gap-2 sm:gap-4">
+                    <div className="w-16 sm:w-28 display-font text-[9px] font-black uppercase text-[#ffe600] tracking-widest text-glow-yellow shrink-0">
                       Engine
                     </div>
                     <div className="flex items-center gap-0">
@@ -522,7 +469,7 @@ export default function MainMenu() {
 
                       return (
                         <>
-                          <div className="flex justify-between items-baseline mb-1">
+                          <div className="flex flex-wrap justify-between items-baseline gap-x-2 mb-1">
                             <span className="display-font text-xs font-black text-white uppercase tracking-wider flex items-center gap-1.5">
                               <node.icon size={13} className={node.branch === 'DEFENSE' ? 'text-[#ff007f]' : node.branch === 'HARVESTING' ? 'text-[#00f3ff]' : 'text-[#ffe600]'} />
                               {node.name}
@@ -540,50 +487,10 @@ export default function MainMenu() {
                     })()
                   ) : (
                     <div className="text-center text-[10px] uppercase font-bold tracking-widest text-gray-500 display-font animate-pulse">
-                      [ HOVER OVER A TECH NODE TO ANALYZE SYSTEM SPECIFICATIONS ]
+                      [ HOVER OR TAP A TECH NODE TO ANALYZE SYSTEM SPECIFICATIONS ]
                     </div>
                   )}
                 </div>
-              </div>
-            )}
-
-            {/* 2.3 VISUALS SUB-TAB */}
-            {garageTab === 'VISUALS' && (
-              <div className="flex flex-col gap-2 max-h-[260px] overflow-y-auto pr-1">
-                {SKINS.filter(s => ['pink', 'cyan', 'yellow', 'green', 'purple'].includes(s.id)).map((skin) => {
-                  const isUnlocked = upgrades.unlockedSkins.includes(skin.id);
-                  const isEquipped = upgrades.equippedSkin === skin.id;
-
-                  return (
-                    <div 
-                      key={skin.id}
-                      onClick={() => isUnlocked ? equipSkin(skin.id) : buySkin(skin.id, skin.cost)}
-                      className={`p-2.5 rounded-lg border flex justify-between items-center cursor-pointer transition-all ${
-                        isEquipped
-                          ? 'bg-white/10 border-[#ffe600] shadow-[0_0_6px_rgba(255,230,0,0.15)]'
-                          : isUnlocked
-                            ? 'bg-black/20 border-white/10 hover:border-cyan-400'
-                            : 'bg-black/40 border-white/5 hover:border-yellow-400/40'
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-7 h-7 bg-black/40 border border-white/10 rounded flex items-center justify-center p-1 flex-shrink-0">
-                          <ShipSvgIcon id={skin.id} color={skin.color} />
-                        </div>
-                        <span className="display-font text-xs font-semibold text-gray-200">{skin.name}</span>
-                      </div>
-                      <div className="flex-shrink-0">
-                        {isEquipped ? (
-                          <span className="text-[9px] uppercase font-black text-[#ffe600] tracking-wider text-glow-yellow">EQUIPPED</span>
-                        ) : isUnlocked ? (
-                          <span className="text-[9px] uppercase font-bold text-cyan-400 tracking-wider">EQUIP</span>
-                        ) : (
-                          <span className="text-[10px] font-bold text-[#ffe600]">{skin.cost} 💎</span>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
               </div>
             )}
           </div>
