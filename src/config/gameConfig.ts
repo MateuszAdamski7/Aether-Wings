@@ -1,14 +1,14 @@
-import type { LucideIcon } from 'lucide-react';
+import type { ComponentType } from 'react';
 import { 
   Shield, 
   Layers, 
   ShieldAlert, 
-  Magnet, 
   Sparkles, 
   Coins, 
   Gauge, 
   Zap 
 } from 'lucide-react';
+import MagnetIcon from '../components/ui/MagnetIcon';
 
 export const LANES = [-2, 0, 2];
 export const SPAWN_INTERVAL = 35; // Spawn an obstacle group every 35 units
@@ -64,7 +64,7 @@ export interface UpgradeNode {
   branch: 'DEFENSE' | 'HARVESTING' | 'ENGINE';
   tier: number;
   prerequisite: UpgradeId | null;
-  icon: LucideIcon;
+  icon: ComponentType<{ size?: number; className?: string }>;
   effectLabel: string;
 }
 
@@ -112,7 +112,7 @@ export const UPGRADE_NODES: UpgradeNode[] = [
     branch: 'HARVESTING',
     tier: 1,
     prerequisite: null,
-    icon: Magnet,
+    icon: MagnetIcon,
     effectLabel: 'Magnet Range: 1.5m'
   },
   {

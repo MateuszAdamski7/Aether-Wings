@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Play, LogOut } from 'lucide-react';
 import { useGameStore } from '../../store/useGameStore';
 import { audioManager } from '../../utils/audio';
 
@@ -62,7 +61,7 @@ export default function PauseMenu() {
       <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none select-none">
         <span
           key={countdown}
-          className="display-font text-8xl font-black text-[#00f3ff] text-glow-cyan animate-pulse"
+          className="display-font text-8xl sm:text-[160px] font-black text-[#00f3ff] holo-glow-cyan animate-pulse"
           role="status"
           aria-live="assertive"
         >
@@ -74,32 +73,28 @@ export default function PauseMenu() {
 
   return (
     <div className="absolute inset-0 z-20 flex flex-col items-center justify-center hud-container select-none">
-      <div className="absolute inset-0 bg-black/60 pointer-events-none" />
+      <div className="holo-scrim-dense" />
 
       <div
-        className="glass-panel relative w-full max-w-xs p-8 flex flex-col items-center text-center border-glow-cyan"
+        className="relative flex flex-col items-center text-center"
         role="dialog"
         aria-labelledby="pause-title"
       >
-        <h1 id="pause-title" className="display-font text-4xl font-black mb-1 text-[#00f3ff] text-glow-cyan tracking-widest">
+        <h1 id="pause-title" className="display-font text-5xl sm:text-[64px] font-black m-0 text-[#00f3ff] holo-glow-cyan tracking-[0.3em] pl-[0.3em]">
           PAUSED
         </h1>
-        <p className="display-font text-[10px] uppercase tracking-widest text-gray-400 mb-6">
+        <p className="holo-label holo-shadow text-white/55 mt-2.5 mb-0">
           Systems on standby
         </p>
 
-        <div className="flex flex-col gap-3 w-full">
-          <button onClick={startResume} className="btn-cyber btn-cyber-magenta px-8 py-3 w-full justify-center">
-            <Play size={16} className="mr-2" />
-            RESUME
-          </button>
-          <button onClick={handleQuit} className="btn-cyber px-8 py-2.5 w-full justify-center" style={{ fontSize: '11px' }}>
-            <LogOut size={14} className="mr-1.5" />
-            QUIT TO MENU
-          </button>
-        </div>
+        <button onClick={startResume} className="holo-cta holo-glow-magenta text-[#ff4da6] hover:text-white mt-12 sm:mt-14">
+          ›› RESUME ‹‹
+        </button>
+        <button onClick={handleQuit} className="holo-text-btn holo-shadow text-white/60 mt-3">
+          QUIT TO MENU
+        </button>
 
-        <div className="text-[9px] uppercase tracking-widest text-gray-500 mt-4 display-font">
+        <div className="holo-label holo-shadow text-white/40 mt-10">
           Esc / P to resume
         </div>
       </div>

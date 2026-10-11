@@ -2,6 +2,8 @@ import { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { getWorld, renderPlayer } from '../../game';
+import { useGameStore } from '../../store/useGameStore';
+import { facetShadingGlsl } from './facetShading';
 
 // Power-ups spawn with a 15% chance per row, so a handful of slots covers the spawn horizon
 const MAX_POWERUPS = 4;
@@ -22,8 +24,37 @@ const MAGNET_COLOR = new THREE.Color('#ff007f');
 // Shared across all slots so nothing is allocated or uploaded while playing
 const SHIELD_SHELL_GEOMETRY = new THREE.SphereGeometry(0.26, 12, 12);
 const SHIELD_CORE_GEOMETRY = new THREE.BoxGeometry(0.12, 0.12, 0.12);
-const MAGNET_ARC_GEOMETRY = new THREE.TorusGeometry(0.18, 0.05, 8, 16, Math.PI);
-const MAGNET_POLE_GEOMETRY = new THREE.CylinderGeometry(0.05, 0.05, 0.15, 6);
+// Faceted horseshoe: a diamond cross-section bent in five straight segments, with diamond-cut pole blocks
+const MAGNET_ARC_RADIUS = 0.17;
+const MAGNET_ARC_GEOMETRY = new THREE.TorusGeometry(MAGNET_ARC_RADIUS, 0.055, 4, 5, Math.PI);
+const MAGNET_POLE_HEIGHT = 0.1;
+const MAGNET_POLE_GEOMETRY = new THREE.BoxGeometry(0.078, MAGNET_POLE_HEIGHT, 0.078);
+const MAGNET_ARC_EDGES = new THREE.EdgesGeometry(MAGNET_ARC_GEOMETRY, 1);
+const MAGNET_POLE_EDGES = new THREE.EdgesGeometry(MAGNET_POLE_GEOMETRY, 1);
+const MAGNET_POLE_ROTATION = new THREE.Euler(0, Math.PI / 4, 0);
+
+function withFacetShading<T extends THREE.MeshStandardMaterial>(material: T): T {
+  material.onBeforeCompile = (shader) => {
+    shader.fragmentShader = shader.fragmentShader.replace(
+      '#include <emissivemap_fragment>',
+      `#include <emissivemap_fragment>${facetShadingGlsl(0.25)}`
+    );
+  };
+  return material;
+}
+
+const MAGNET_BODY_MATERIAL = withFacetShading(
+  new THREE.MeshStandardMaterial({ color: MAGNET_COLOR, emissive: MAGNET_COLOR, emissiveIntensity: 1.4, metalness: 0.8, roughness: 0.2, flatShading: true })
+);
+// White-hot pole tips, bright enough to bloom
+const MAGNET_POLE_MATERIAL = withFacetShading(
+  new THREE.MeshStandardMaterial({ color: '#ffffff', emissive: '#ffffff', emissiveIntensity: 1.6, flatShading: true })
+);
+// HIGH quality outline along the facet edges
+const MAGNET_EDGE_MATERIAL = new THREE.LineBasicMaterial({
+  color: new THREE.Color('#ffb3d9').multiplyScalar(1.8),
+  toneMapped: false,
+});
 const HALO_GEOMETRY = new THREE.RingGeometry(0.22, 0.32, 4);
 
 interface PowerUpVisual {
@@ -39,6 +70,8 @@ const SLOTS = Array.from({ length: MAX_POWERUPS }, (_, slot) => slot);
 
 /** Fixed pool of slots reading power-ups straight from the World every frame */
 export default function PowerUps() {
+  const showOutline = useGameStore((state) => state.graphicsQuality === 'HIGH');
+
   // Drop visual state of power-ups that left the track
   useFrame(() => {
     const powerUps = getWorld()?.powerUps;
@@ -50,7 +83,7 @@ export default function PowerUps() {
   return (
     <group>
       {SLOTS.map((slot) => (
-        <PowerUpSlot key={slot} slot={slot} />
+        <PowerUpSlot key={slot} slot={slot} showOutline={showOutline} />
       ))}
     </group>
   );
@@ -59,7 +92,12 @@ export default function PowerUps() {
 const _target = new THREE.Vector3();
 const _start = new THREE.Vector3();
 
-function PowerUpSlot({ slot }: { slot: number }) {
+interface PowerUpSlotProps {
+  slot: number;
+  showOutline: boolean;
+}
+
+function PowerUpSlot({ slot, showOutline }: PowerUpSlotProps) {
   const rootRef = useRef<THREE.Group>(null);
   const modelRef = useRef<THREE.Group>(null);
   const shieldRef = useRef<THREE.Group>(null);
@@ -146,17 +184,16 @@ function PowerUpSlot({ slot }: { slot: number }) {
           </mesh>
         </group>
 
-        <group ref={magnetRef} rotation={[0, 0, Math.PI / 4]}>
-          {/* U-Shape Horseshoe Magnet (Torus/Cylinder combination) */}
-          <mesh geometry={MAGNET_ARC_GEOMETRY}>
-            <meshStandardMaterial color={MAGNET_COLOR} emissive={MAGNET_COLOR} emissiveIntensity={1.2} metalness={0.8} />
-          </mesh>
-          <mesh position={[-0.18, 0.08, 0]} geometry={MAGNET_POLE_GEOMETRY}>
-            <meshStandardMaterial color="#ffffff" metalness={0.9} />
-          </mesh>
-          <mesh position={[0.18, 0.08, 0]} geometry={MAGNET_POLE_GEOMETRY}>
-            <meshStandardMaterial color="#ffffff" metalness={0.9} />
-          </mesh>
+        {/* Horseshoe flipped to open upwards, slightly tilted, and lifted so it bobs around its middle */}
+        <group ref={magnetRef} position={[0, 0.06, 0]} rotation={[0, 0, Math.PI - 0.3]}>
+          <mesh geometry={MAGNET_ARC_GEOMETRY} material={MAGNET_BODY_MATERIAL} />
+          {[-MAGNET_ARC_RADIUS, MAGNET_ARC_RADIUS].map((x) => (
+            <group key={x} position={[x, -MAGNET_POLE_HEIGHT / 2, 0]} rotation={MAGNET_POLE_ROTATION}>
+              <mesh geometry={MAGNET_POLE_GEOMETRY} material={MAGNET_POLE_MATERIAL} />
+              {showOutline && <lineSegments geometry={MAGNET_POLE_EDGES} material={MAGNET_EDGE_MATERIAL} />}
+            </group>
+          ))}
+          {showOutline && <lineSegments geometry={MAGNET_ARC_EDGES} material={MAGNET_EDGE_MATERIAL} />}
         </group>
       </group>
 
