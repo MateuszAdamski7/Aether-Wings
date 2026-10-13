@@ -1,6 +1,10 @@
+import { DEFAULT_VOLUME } from '../config/tuning';
+
 class AudioManager {
   private ctx: AudioContext | null = null;
   private isMuted: boolean = false;
+  // Matches the store's default until a saved volume is applied
+  private volume = DEFAULT_VOLUME;
   
   // Master & SFX gain
   private masterGain: GainNode | null = null;
@@ -35,7 +39,7 @@ class AudioManager {
 
     // Initial volumes
     this.sfxGain.gain.setValueAtTime(0.35, this.ctx.currentTime);
-    this.masterGain.gain.setValueAtTime(this.isMuted ? 0 : 1, this.ctx.currentTime);
+    this.masterGain.gain.setValueAtTime(this.masterLevel(), this.ctx.currentTime);
 
     // Pre-allocate a 1-second white noise buffer once (reused across crash and shield shatter FX)
     const noiseLength = Math.floor(this.ctx.sampleRate * 1.0);
@@ -62,8 +66,22 @@ class AudioManager {
 
   public setMute(muted: boolean) {
     this.isMuted = muted;
+    this.applyMasterLevel();
+  }
+
+  /** Master volume from 0 to 1, applied on top of mute */
+  public setVolume(volume: number) {
+    this.volume = volume;
+    this.applyMasterLevel();
+  }
+
+  private masterLevel(): number {
+    return this.isMuted ? 0 : this.volume;
+  }
+
+  private applyMasterLevel() {
     if (this.masterGain && this.ctx) {
-      this.masterGain.gain.setValueAtTime(muted ? 0 : 1, this.ctx.currentTime);
+      this.masterGain.gain.setValueAtTime(this.masterLevel(), this.ctx.currentTime);
     }
   }
 

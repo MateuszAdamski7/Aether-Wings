@@ -117,12 +117,13 @@ export interface GarageSlice {
 
 export interface SettingsSlice {
   isMuted: boolean;
+  /** Master volume from 0 to 1 (music and sound effects), independent of mute */
+  volume: number;
   graphicsQuality: 'HIGH' | 'LOW';
-  showPerfStats: boolean;
 
   toggleMute: () => void;
+  setVolume: (volume: number) => void;
   setGraphicsQuality: (quality: 'HIGH' | 'LOW') => void;
-  togglePerfStats: () => void;
 }
 
 export interface MissionSlice {

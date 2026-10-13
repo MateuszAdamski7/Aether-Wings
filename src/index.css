@@ -103,6 +103,36 @@ canvas {
   display: none;
 }
 
+/* Main menu tabs as a sliding gallery: the panes sit side by side and the strip slides to the active one,
+   while the pane being left fades out */
+.menu-carousel {
+  display: flex;
+  height: 100%;
+  transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.menu-pane {
+  flex: 0 0 100%;
+  min-width: 0;
+  height: 100%;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: opacity 0.45s ease;
+}
+
+.menu-pane[data-active="false"] {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .menu-carousel,
+  .menu-pane {
+    transition: none;
+  }
+}
+
 /* Holo UI: borderless text readouts. A dark drop shadow keeps them legible over the
    moving scene, the colored glow carries the neon look. */
 .holo-label {
@@ -228,6 +258,102 @@ canvas {
   color: #fff !important;
 }
 
+/* Vertical volume slider: drops down below the mute button on hover or keyboard focus. Absolutely positioned,
+   so opening it never moves the buttons around it. A mouse click does not keep it open, so it closes as soon
+   as the cursor leaves. */
+.volume-control {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.volume-slider {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  z-index: 1;
+  width: 44px;
+  height: 0;
+  margin-left: -22px;
+  overflow: hidden;
+  opacity: 0;
+  transition: height 0.25s ease, opacity 0.2s ease;
+}
+
+.volume-control:hover .volume-slider,
+.volume-control:has(:focus-visible) .volume-slider {
+  height: 136px;
+  opacity: 1;
+}
+
+/* Touch screens have no hover: a tap on the button opens it, a tap anywhere else closes it */
+@media (hover: none) {
+  .volume-control:focus-within .volume-slider {
+    height: 136px;
+    opacity: 1;
+  }
+}
+
+/* A horizontal range rotated upright: renders the same in every browser, unlike native vertical sliders.
+   Rotated by -90deg, so the minimum sits at the bottom and the fill grows upwards. */
+.holo-range {
+  -webkit-appearance: none;
+  appearance: none;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 120px;
+  height: 24px;
+  margin: -12px 0 0 -60px;
+  background: transparent;
+  cursor: pointer;
+  transform: rotate(-90deg);
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.9));
+}
+
+.holo-range::-webkit-slider-runnable-track {
+  height: 2px;
+  background: linear-gradient(90deg, var(--neon-cyan) var(--fill, 0%), rgba(255, 255, 255, 0.2) var(--fill, 0%));
+}
+
+.holo-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  margin-top: -5px;
+  border: 0;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 8px var(--neon-cyan);
+}
+
+.holo-range::-moz-range-track {
+  height: 2px;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.holo-range::-moz-range-progress {
+  height: 2px;
+  background: var(--neon-cyan);
+}
+
+.holo-range::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border: 0;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 8px var(--neon-cyan);
+}
+
+.holo-range:focus-visible {
+  outline: none;
+}
+
+.holo-range:focus-visible::-webkit-slider-thumb {
+  box-shadow: 0 0 0 3px rgba(0, 243, 255, 0.4), 0 0 8px var(--neon-cyan);
+}
+
 /* Darkens the scene behind centered menu text instead of a panel */
 .holo-scrim {
   position: absolute;
@@ -303,45 +429,6 @@ canvas {
 
 .overflow-y-auto {
   overflow-y: auto;
-}
-
-/* StatsGl Performance Monitor Telemetry Bar */
-.stats-gl-container {
-  position: fixed !important;
-  top: 16px !important;
-  left: 50% !important;
-  transform: translateX(-50%) !important;
-  z-index: 10001 !important;
-  display: flex !important;
-  gap: 3px !important;
-  background: rgba(8, 8, 22, 0.88) !important;
-  border: 1px solid rgba(0, 243, 255, 0.35) !important;
-  border-radius: 8px !important;
-  padding: 3px 5px !important;
-  box-shadow: 0 0 15px rgba(0, 243, 255, 0.25), inset 0 0 8px rgba(0, 243, 255, 0.1) !important;
-  backdrop-filter: blur(10px) !important;
-  -webkit-backdrop-filter: blur(10px) !important;
-  pointer-events: auto !important;
-  user-select: none !important;
-}
-
-.stats-gl-container canvas {
-  border-radius: 4px !important;
-}
-
-/* Backdrop filter kill-switch for LOW mode and coarse pointers */
-[data-quality="low"] .stats-gl-container {
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-  background: rgba(8, 8, 22, 0.96) !important;
-}
-
-@media (pointer: coarse) {
-  .stats-gl-container {
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-    background: rgba(8, 8, 22, 0.96) !important;
-  }
 }
 
 /* Global catch-all override for all backdrop-filter in LOW mode or touch devices */

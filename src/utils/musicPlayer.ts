@@ -1,3 +1,5 @@
+import { DEFAULT_VOLUME } from '../config/tuning';
+
 export interface SongTrack {
   id: string;
   title: string;
@@ -51,6 +53,8 @@ class MusicPlayer {
   private currentSong: SongTrack | null = null;
   private audio: HTMLAudioElement | null = null;
   private isMuted: boolean = false;
+  // Matches the store's default until a saved volume is applied
+  private volume = DEFAULT_VOLUME;
   private listeners: Set<(song: SongTrack) => void> = new Set();
 
   constructor() {
@@ -142,10 +146,16 @@ class MusicPlayer {
     this.applyVolume();
   }
 
+  /** Master volume from 0 to 1, scaling the music's base level */
+  public setVolume(volume: number) {
+    this.volume = volume;
+    this.applyVolume();
+  }
+
   // iOS ignores HTMLMediaElement.volume (it is read-only there), so muting must go through `muted`
   private applyVolume() {
     if (!this.audio) return;
-    this.audio.volume = MUSIC_VOLUME;
+    this.audio.volume = MUSIC_VOLUME * this.volume;
     this.audio.muted = this.isMuted;
   }
 

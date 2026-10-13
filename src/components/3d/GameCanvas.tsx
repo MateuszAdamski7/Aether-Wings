@@ -4,7 +4,6 @@ import * as THREE from 'three';
 import { useGameStore } from '../../store/useGameStore';
 import { getWorld, renderPlayer } from '../../game';
 import { CAMERA_CONFIG } from '../../config/tuning';
-import PerfTelemetry from './PerfTelemetry';
 import Ship from './Ship';
 import Track from './Track';
 import Obstacles from './Obstacles';
@@ -138,7 +137,6 @@ export default function GameCanvas() {
 
   const gameState = useGameStore((state) => state.gameState);
   const graphicsQuality = useGameStore((state) => state.graphicsQuality);
-  const showPerfStats = useGameStore((state) => state.showPerfStats);
 
   return (
     <div style={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0, zIndex: 1 }}>
@@ -147,9 +145,6 @@ export default function GameCanvas() {
         dpr={graphicsQuality === 'HIGH' ? Math.min(1.5, window.devicePixelRatio) : 1.0}
         camera={{ position: [0, 2, -5], fov: 65, near: 0.1, far: 250 }}
       >
-        {/* Real-time WebGL telemetry (FPS, CPU, Draw Calls, Triangles, Geometries, Textures, Memory) */}
-        {showPerfStats && <PerfTelemetry />}
-
         {/* Environment setup (lights, sun, background, mountains) */}
         <Environment />
 

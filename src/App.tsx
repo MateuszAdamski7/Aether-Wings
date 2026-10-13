@@ -29,7 +29,6 @@ function App() {
       shiftLane: (screenDirection) => game().shiftLane(screenDirection),
       boost: () => game().activateBoost(),
       pause: () => game().pauseGame(),
-      togglePerfStats: () => game().togglePerfStats(),
     });
   }, []);
 

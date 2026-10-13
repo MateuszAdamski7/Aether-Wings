@@ -14,7 +14,7 @@ export { generateRandomMission } from './missionUtils';
 
 type PersistedState = Pick<
   GameStore,
-  'highScore' | 'lifetimeCrystals' | 'upgrades' | 'activeMissions' | 'isMuted' | 'graphicsQuality' | 'showPerfStats'
+  'highScore' | 'lifetimeCrystals' | 'upgrades' | 'activeMissions' | 'isMuted' | 'volume' | 'graphicsQuality'
 >;
 
 /**
@@ -66,13 +66,15 @@ export const useGameStore = create<GameStore>()(
         upgrades: state.upgrades,
         activeMissions: state.activeMissions,
         isMuted: state.isMuted,
+        volume: state.volume,
         graphicsQuality: state.graphicsQuality,
-        showPerfStats: state.showPerfStats,
       }),
       onRehydrateStorage: () => (state) => {
         if (state) {
           audioManager.setMute(state.isMuted);
           musicPlayer.setMute(state.isMuted);
+          audioManager.setVolume(state.volume);
+          musicPlayer.setVolume(state.volume);
         }
       },
     }

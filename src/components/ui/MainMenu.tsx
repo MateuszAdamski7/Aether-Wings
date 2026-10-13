@@ -2,10 +2,11 @@ import { useState } from 'react';
 import { useGameStore } from '../../store/useGameStore';
 import { audioManager } from '../../utils/audio';
 import { SKINS, UPGRADE_NODES, type UpgradeNode } from '../../config/gameConfig';
-import { Volume2, VolumeX, Cpu, Activity } from 'lucide-react';
+import { Cpu } from 'lucide-react';
 
 import { musicPlayer } from '../../utils/musicPlayer';
 import CrystalIcon from './CrystalIcon';
+import VolumeControl from './VolumeControl';
 
 type MenuTab = 'PLAY' | 'GARAGE' | 'MISSIONS';
 
@@ -86,12 +87,8 @@ export default function MainMenu() {
   const startGame = useGameStore((state) => state.startGame);
   const sceneReady = useGameStore((state) => state.sceneReady);
   const highScore = useGameStore((state) => state.highScore);
-  const isMuted = useGameStore((state) => state.isMuted);
-  const toggleMute = useGameStore((state) => state.toggleMute);
   const graphicsQuality = useGameStore((state) => state.graphicsQuality);
   const setGraphicsQuality = useGameStore((state) => state.setGraphicsQuality);
-  const showPerfStats = useGameStore((state) => state.showPerfStats);
-  const togglePerfStats = useGameStore((state) => state.togglePerfStats);
 
   // Shop states
   const lifetimeCrystals = useGameStore((state) => state.lifetimeCrystals);
@@ -102,6 +99,8 @@ export default function MainMenu() {
 
   // Mission states
   const activeMissions = useGameStore((state) => state.activeMissions);
+
+  const activeTabIndex = MENU_TABS.findIndex((tab) => tab.id === activeTab);
 
   const isNodeUnlocked = (nodeId: string) => Boolean(upgrades[nodeId as keyof typeof upgrades]);
 
@@ -255,16 +254,6 @@ export default function MainMenu() {
           </div>
 
           <div className="flex">
-            {/* Performance Telemetry Toggle (F3) */}
-            <button
-              onClick={togglePerfStats}
-              className={`holo-icon-btn ${showPerfStats ? '!text-[#00f3ff]' : 'opacity-60'}`}
-              title={showPerfStats ? 'Hide Performance Telemetry (F3)' : 'Show Performance Telemetry (F3)'}
-              aria-label="Performance telemetry"
-            >
-              <Activity size={20} />
-            </button>
-
             {/* Graphics Quality Toggle */}
             <button
               onClick={toggleGraphics}
@@ -275,25 +264,13 @@ export default function MainMenu() {
               <Cpu size={20} />
             </button>
 
-            {/* Audio Mute Toggle */}
-            <button
-              onClick={toggleMute}
-              className="holo-icon-btn"
-              title={isMuted ? 'Unmute' : 'Mute'}
-              aria-label={isMuted ? 'Unmute' : 'Mute'}
-            >
-              {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
-            </button>
+            <VolumeControl />
           </div>
         </div>
 
-        {/* Scrollable content, so short screens never clip the garage or missions lists */}
-        <div className="flex-1 min-h-0 overflow-y-auto flex flex-col items-center pointer-events-auto">
-          <h1
-            className={`display-font font-black text-center text-[#e9fdff] holo-glow-cyan m-0 tracking-[0.2em] pl-[0.2em] ${
-              activeTab === 'PLAY' ? 'text-3xl sm:text-5xl md:text-[68px] mt-6 md:mt-14' : 'text-2xl sm:text-4xl md:text-[40px] mt-2 md:mt-6'
-            }`}
-          >
+        {/* Fixed header: the title and tabs stay in place on every tab */}
+        <div className="shrink-0 flex flex-col items-center pointer-events-auto">
+          <h1 className="display-font font-black text-center text-[#e9fdff] holo-glow-cyan m-0 tracking-[0.2em] pl-[0.2em] text-3xl sm:text-5xl md:text-[56px] mt-4 md:mt-8">
             AETHER WINGS
           </h1>
 
@@ -318,183 +295,184 @@ export default function MainMenu() {
               );
             })}
           </nav>
+        </div>
 
-          {/* 1. PLAY TAB */}
-          {activeTab === 'PLAY' && (
-            <div className="flex flex-col items-center w-full text-center my-auto py-6">
-              <span className="holo-label holo-shadow text-white/60">Personal best</span>
-              <span className="holo-num holo-glow-cyan text-4xl sm:text-[52px] mt-2">{highScore.toLocaleString()}</span>
+        {/* Tab gallery: the panes sit side by side and the strip slides to the active one */}
+        <div className="flex-1 min-h-0 overflow-hidden pointer-events-auto">
+          <div className="menu-carousel" style={{ transform: `translateX(-${activeTabIndex * 100}%)` }}>
+            {/* 1. PLAY TAB */}
+            <section className="menu-pane" data-active={activeTab === 'PLAY'} inert={activeTab !== 'PLAY'} aria-label="Launch">
+              <div className="flex flex-col items-center w-full text-center my-auto py-6">
+                <span className="holo-label holo-shadow text-white/60">Personal best</span>
+                <span className="holo-num holo-glow-cyan text-4xl sm:text-[52px] mt-2">{highScore.toLocaleString()}</span>
 
-              <button
-                onClick={handleStart}
-                disabled={!sceneReady}
-                className="holo-cta holo-glow-cyan text-white hover:text-[#00f3ff] mt-8 sm:mt-10"
-              >
-                {sceneReady ? '›› START ENGINES ‹‹' : 'LOADING ENGINE…'}
-              </button>
-
-              <div className="holo-label holo-shadow text-white/55 mt-3 flex items-center gap-2">
-                <span
-                  className={`w-1.5 h-1.5 rounded-full ${sceneReady ? 'bg-[#3dffa8] shadow-[0_0_8px_#3dffa8]' : 'bg-[#ffe600] animate-pulse'}`}
-                />
-                {sceneReady ? 'System ready' : 'Warming up'}
-              </div>
-            </div>
-          )}
-
-          {/* 2. GARAGE TAB */}
-          {activeTab === 'GARAGE' && (
-            <div className="flex flex-col w-full max-w-[760px] text-left mt-6 md:mt-10">
-              {/* Garage Sub-Tabs */}
-              <div className="flex gap-9 px-5 mb-3">
                 <button
-                  onClick={() => setGarageTab('SHIPS')}
-                  className={`flex flex-col gap-1.5 py-2.5 min-h-11 bg-transparent border-0 cursor-pointer display-font text-[11px] font-bold uppercase tracking-[0.26em] transition-colors hover:!text-white ${
-                    garageTab === 'SHIPS' ? 'text-[#ff4da6] holo-glow-magenta' : 'text-white/50 holo-shadow'
-                  }`}
+                  onClick={handleStart}
+                  disabled={!sceneReady}
+                  className="holo-cta holo-glow-cyan text-white hover:text-[#00f3ff] mt-8 sm:mt-10"
                 >
-                  Ships
-                  <span className={`h-px w-full ${garageTab === 'SHIPS' ? 'bg-[#ff007f] shadow-[0_0_8px_#ff007f]' : ''}`} />
+                  {sceneReady ? '›› START ENGINES ‹‹' : 'LOADING ENGINE…'}
                 </button>
-                <button
-                  onClick={() => setGarageTab('UPGRADES')}
-                  className={`flex flex-col gap-1.5 py-2.5 min-h-11 bg-transparent border-0 cursor-pointer display-font text-[11px] font-bold uppercase tracking-[0.26em] transition-colors hover:!text-white ${
-                    garageTab === 'UPGRADES' ? 'text-[#00f3ff] holo-glow-cyan' : 'text-white/50 holo-shadow'
-                  }`}
-                >
-                  Upgrades
-                  <span className={`h-px w-full ${garageTab === 'UPGRADES' ? 'bg-[#00f3ff] shadow-[0_0_8px_#00f3ff]' : ''}`} />
-                </button>
-              </div>
 
-              {/* 2.1 SHIPS SUB-TAB */}
-              {garageTab === 'SHIPS' && (
-                <div className="flex flex-col">
-                  {SKINS.filter(s => ['vortex', 'quantum', 'temporal'].includes(s.id)).map((skin) => {
-                    const isUnlocked = upgrades.unlockedSkins.includes(skin.id);
-                    const isEquipped = upgrades.equippedSkin === skin.id;
-
-                    return (
-                      <button
-                        key={skin.id}
-                        onClick={() => isUnlocked ? equipSkin(skin.id) : buySkin(skin.id, skin.cost)}
-                        className="group grid grid-cols-[48px_minmax(0,1fr)_auto] sm:grid-cols-[64px_minmax(0,1fr)_auto] items-center gap-4 sm:gap-5 px-4 sm:px-5 py-4 w-full text-left bg-transparent border-0 cursor-pointer text-white"
-                        style={isEquipped ? { background: 'linear-gradient(90deg, rgba(255, 0, 127, 0.14), rgba(255, 0, 127, 0) 75%)' } : undefined}
-                      >
-                        <span className={`w-12 h-12 justify-self-center ${isUnlocked ? '' : 'opacity-55'}`}>
-                          <ShipSvgIcon id={skin.id} color={skin.color} />
-                        </span>
-                        <span className="flex flex-col gap-1">
-                          <span className={`display-font font-extrabold text-sm sm:text-base uppercase tracking-[0.12em] holo-shadow transition-colors group-hover:text-[#00f3ff] ${isUnlocked ? '' : 'text-white/75'}`}>
-                            {skin.name}
-                          </span>
-                          <span className={`text-sm sm:text-base holo-shadow ${isUnlocked ? 'text-white/70' : 'text-white/55'}`}>{skin.description}</span>
-                        </span>
-                        {isEquipped ? (
-                          <span className="holo-label holo-glow-magenta text-[11px] text-[#ff4da6]">Equipped</span>
-                        ) : isUnlocked ? (
-                          <span className="holo-label holo-glow-cyan text-[11px] text-[#00f3ff]">Equip</span>
-                        ) : (
-                          <span className="holo-num holo-glow-yellow text-[15px] text-[#ffe600] flex items-center gap-1.5">{skin.cost} <CrystalIcon size={15} className="drop-shadow-[0_0_4px_#ffe600]" /></span>
-                        )}
-                      </button>
-                    );
-                  })}
+                <div className="holo-label holo-shadow text-white/55 mt-3 flex items-center gap-2">
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full ${sceneReady ? 'bg-[#3dffa8] shadow-[0_0_8px_#3dffa8]' : 'bg-[#ffe600] animate-pulse'}`}
+                  />
+                  {sceneReady ? 'System ready' : 'Warming up'}
                 </div>
-              )}
+              </div>
 
-              {/* 2.2 UPGRADES SUB-TAB */}
-              {garageTab === 'UPGRADES' && (
-                <div className="flex flex-col px-4 sm:px-5">
-                  <div className="flex flex-col gap-2.5">
-                    {UPGRADE_BRANCHES.map(({ branch, nodes }) => {
-                      const style = BRANCH_STYLES[branch];
+              <div className="shrink-0 flex flex-wrap justify-center gap-x-10 gap-y-1 pt-3 text-[15px] font-semibold tracking-[0.06em] text-white/70 holo-shadow text-center">
+                <span className="pointer-coarse:hidden">
+                  <b className="display-font text-[#00f3ff]">A / D</b> or <b className="display-font text-[#00f3ff]">← / →</b> change lanes
+                </span>
+                <span className="pointer-coarse:hidden"><b className="display-font text-[#00f3ff]">SPACE</b> hyperboost</span>
+                <span className="pointer-coarse:hidden"><b className="display-font text-[#00f3ff]">ESC</b> pause</span>
+                <span className="hidden pointer-coarse:inline">
+                  <b className="display-font text-[#00f3ff]">Swipe</b> to change lanes · tap <b className="display-font text-[#00f3ff]">BOOST</b> when charged
+                </span>
+              </div>
+            </section>
+
+            {/* 2. GARAGE TAB */}
+            <section className="menu-pane" data-active={activeTab === 'GARAGE'} inert={activeTab !== 'GARAGE'} aria-label="Garage">
+              <div className="flex flex-col w-full max-w-[760px] text-left mt-6 md:mt-10">
+                {/* Garage Sub-Tabs */}
+                <div className="flex gap-9 px-5 mb-3">
+                  <button
+                    onClick={() => setGarageTab('SHIPS')}
+                    className={`flex flex-col gap-1.5 py-2.5 min-h-11 bg-transparent border-0 cursor-pointer display-font text-[11px] font-bold uppercase tracking-[0.26em] transition-colors hover:!text-white ${
+                      garageTab === 'SHIPS' ? 'text-[#ff4da6] holo-glow-magenta' : 'text-white/50 holo-shadow'
+                    }`}
+                  >
+                    Ships
+                    <span className={`h-px w-full ${garageTab === 'SHIPS' ? 'bg-[#ff007f] shadow-[0_0_8px_#ff007f]' : ''}`} />
+                  </button>
+                  <button
+                    onClick={() => setGarageTab('UPGRADES')}
+                    className={`flex flex-col gap-1.5 py-2.5 min-h-11 bg-transparent border-0 cursor-pointer display-font text-[11px] font-bold uppercase tracking-[0.26em] transition-colors hover:!text-white ${
+                      garageTab === 'UPGRADES' ? 'text-[#00f3ff] holo-glow-cyan' : 'text-white/50 holo-shadow'
+                    }`}
+                  >
+                    Upgrades
+                    <span className={`h-px w-full ${garageTab === 'UPGRADES' ? 'bg-[#00f3ff] shadow-[0_0_8px_#00f3ff]' : ''}`} />
+                  </button>
+                </div>
+
+                {/* 2.1 SHIPS SUB-TAB */}
+                {garageTab === 'SHIPS' && (
+                  <div className="flex flex-col">
+                    {SKINS.filter(s => ['vortex', 'quantum', 'temporal'].includes(s.id)).map((skin) => {
+                      const isUnlocked = upgrades.unlockedSkins.includes(skin.id);
+                      const isEquipped = upgrades.equippedSkin === skin.id;
+
                       return (
-                        <div key={branch} className="flex items-start">
-                          <span
-                            className={`w-20 sm:w-32 pt-5 shrink-0 display-font text-[10px] sm:text-[11px] font-extrabold uppercase tracking-[0.3em] ${style.glowClass}`}
-                            style={{ color: style.color }}
-                          >
-                            {style.label}
+                        <button
+                          key={skin.id}
+                          onClick={() => isUnlocked ? equipSkin(skin.id) : buySkin(skin.id, skin.cost)}
+                          className="group grid grid-cols-[48px_minmax(0,1fr)_auto] sm:grid-cols-[64px_minmax(0,1fr)_auto] items-center gap-4 sm:gap-5 px-4 sm:px-5 py-4 w-full text-left bg-transparent border-0 cursor-pointer text-white"
+                          style={isEquipped ? { background: 'linear-gradient(90deg, rgba(255, 0, 127, 0.14), rgba(255, 0, 127, 0) 75%)' } : undefined}
+                        >
+                          <span className={`w-12 h-12 justify-self-center ${isUnlocked ? '' : 'opacity-55'}`}>
+                            <ShipSvgIcon id={skin.id} color={skin.color} />
                           </span>
-                          {nodes.map((nodeId, i) => (
-                            <div key={nodeId} className="flex items-start">
-                              {i > 0 && renderConnector(nodes[i - 1], nodeId, style.color)}
-                              {renderNode(nodeId)}
-                            </div>
-                          ))}
-                        </div>
+                          <span className="flex flex-col gap-1">
+                            <span className={`display-font font-extrabold text-sm sm:text-base uppercase tracking-[0.12em] holo-shadow transition-colors group-hover:text-[#00f3ff] ${isUnlocked ? '' : 'text-white/75'}`}>
+                              {skin.name}
+                            </span>
+                            <span className={`text-sm sm:text-base holo-shadow ${isUnlocked ? 'text-white/70' : 'text-white/55'}`}>{skin.description}</span>
+                          </span>
+                          {isEquipped ? (
+                            <span className="holo-label holo-glow-magenta text-[11px] text-[#ff4da6]">Equipped</span>
+                          ) : isUnlocked ? (
+                            <span className="holo-label holo-glow-cyan text-[11px] text-[#00f3ff]">Equip</span>
+                          ) : (
+                            <span className="holo-num holo-glow-yellow text-[15px] text-[#ffe600] flex items-center gap-1.5">{skin.cost} <CrystalIcon size={15} className="drop-shadow-[0_0_4px_#ffe600]" /></span>
+                          )}
+                        </button>
                       );
                     })}
                   </div>
+                )}
 
-                  {/* Selected node readout */}
-                  <div className="mt-5 flex flex-col gap-1.5 max-w-[620px] min-h-[96px]">
-                    {renderNodeDetails()}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* 3. MISSIONS TAB */}
-          {activeTab === 'MISSIONS' && (
-            <div className="flex flex-col w-full max-w-[600px] text-left mt-6 md:mt-10 px-1">
-              <span className="holo-label holo-glow-yellow text-[11px] text-[#ffe600]">Dynamic challenges</span>
-
-              <div className="flex flex-col gap-8 mt-8">
-                {activeMissions.map((m) => (
-                  <div key={m.id} className="flex flex-col gap-2.5">
-                    <div className="flex justify-between items-baseline gap-5">
-                      <span
-                        className={`display-font font-bold text-[13px] sm:text-[15px] uppercase tracking-[0.1em] holo-shadow ${
-                          m.completed ? 'text-white/45 line-through' : 'text-white'
-                        }`}
-                      >
-                        {m.description}
-                      </span>
-                      <span className={`holo-num text-sm whitespace-nowrap flex items-center gap-1.5 ${m.completed ? 'text-[#ffe600]/50 holo-shadow' : 'text-[#ffe600] holo-glow-yellow'}`}>
-                        +{m.reward} <CrystalIcon size={14} />
-                      </span>
+                {/* 2.2 UPGRADES SUB-TAB */}
+                {garageTab === 'UPGRADES' && (
+                  <div className="flex flex-col px-4 sm:px-5">
+                    <div className="flex flex-col gap-2.5">
+                      {UPGRADE_BRANCHES.map(({ branch, nodes }) => {
+                        const style = BRANCH_STYLES[branch];
+                        return (
+                          <div key={branch} className="flex items-start">
+                            <span
+                              className={`w-20 sm:w-32 pt-5 shrink-0 display-font text-[10px] sm:text-[11px] font-extrabold uppercase tracking-[0.3em] ${style.glowClass}`}
+                              style={{ color: style.color }}
+                            >
+                              {style.label}
+                            </span>
+                            {nodes.map((nodeId, i) => (
+                              <div key={nodeId} className="flex items-start">
+                                {i > 0 && renderConnector(nodes[i - 1], nodeId, style.color)}
+                                {renderNode(nodeId)}
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      })}
                     </div>
-                    <div className="holo-track">
-                      <div
-                        className={`h-full transition-all duration-300 ${
-                          m.completed
-                            ? 'bg-[#3dffa8] shadow-[0_0_8px_#3dffa8]'
-                            : 'bg-gradient-to-r from-[#9d00ff] to-[#00f3ff] shadow-[0_0_8px_rgba(0,243,255,0.6)]'
-                        }`}
-                        style={{ width: `${Math.min(100, (m.current / m.target) * 100)}%` }}
-                      />
+
+                    {/* Selected node readout */}
+                    <div className="mt-5 flex flex-col gap-1.5 max-w-[620px] min-h-[96px]">
+                      {renderNodeDetails()}
                     </div>
-                    <span className={`holo-label self-end ${m.completed ? 'text-[#3dffa8] holo-glow-green' : 'text-white/60 holo-shadow'}`}>
-                      {m.completed ? 'Completed' : `${m.current.toLocaleString()} / ${m.target.toLocaleString()}`}
-                    </span>
                   </div>
-                ))}
+                )}
               </div>
-            </div>
-          )}
-        </div>
+            </section>
 
-        {/* Footer: controls on the launch tab, regeneration note on missions */}
-        {activeTab === 'PLAY' && (
-          <div className="shrink-0 flex flex-wrap justify-center gap-x-10 gap-y-1 pt-3 text-[15px] font-semibold tracking-[0.06em] text-white/70 holo-shadow text-center">
-            <span className="pointer-coarse:hidden">
-              <b className="display-font text-[#00f3ff]">A / D</b> or <b className="display-font text-[#00f3ff]">← / →</b> change lanes
-            </span>
-            <span className="pointer-coarse:hidden"><b className="display-font text-[#00f3ff]">SPACE</b> hyperboost</span>
-            <span className="pointer-coarse:hidden"><b className="display-font text-[#00f3ff]">ESC</b> pause</span>
-            <span className="hidden pointer-coarse:inline">
-              <b className="display-font text-[#00f3ff]">Swipe</b> to change lanes · tap <b className="display-font text-[#00f3ff]">BOOST</b> when charged
-            </span>
+            {/* 3. MISSIONS TAB */}
+            <section className="menu-pane" data-active={activeTab === 'MISSIONS'} inert={activeTab !== 'MISSIONS'} aria-label="Missions">
+              <div className="flex flex-col w-full max-w-[600px] text-left mt-6 md:mt-10 px-1">
+                <span className="holo-label holo-glow-yellow text-[11px] text-[#ffe600]">Dynamic challenges</span>
+
+                <div className="flex flex-col gap-8 mt-8">
+                  {activeMissions.map((m) => (
+                    <div key={m.id} className="flex flex-col gap-2.5">
+                      <div className="flex justify-between items-baseline gap-5">
+                        <span
+                          className={`display-font font-bold text-[13px] sm:text-[15px] uppercase tracking-[0.1em] holo-shadow ${
+                            m.completed ? 'text-white/45 line-through' : 'text-white'
+                          }`}
+                        >
+                          {m.description}
+                        </span>
+                        <span className={`holo-num text-sm whitespace-nowrap flex items-center gap-1.5 ${m.completed ? 'text-[#ffe600]/50 holo-shadow' : 'text-[#ffe600] holo-glow-yellow'}`}>
+                          +{m.reward} <CrystalIcon size={14} />
+                        </span>
+                      </div>
+                      <div className="holo-track">
+                        <div
+                          className={`h-full transition-all duration-300 ${
+                            m.completed
+                              ? 'bg-[#3dffa8] shadow-[0_0_8px_#3dffa8]'
+                              : 'bg-gradient-to-r from-[#9d00ff] to-[#00f3ff] shadow-[0_0_8px_rgba(0,243,255,0.6)]'
+                          }`}
+                          style={{ width: `${Math.min(100, (m.current / m.target) * 100)}%` }}
+                        />
+                      </div>
+                      <span className={`holo-label self-end ${m.completed ? 'text-[#3dffa8] holo-glow-green' : 'text-white/60 holo-shadow'}`}>
+                        {m.completed ? 'Completed' : `${m.current.toLocaleString()} / ${m.target.toLocaleString()}`}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <span className="shrink-0 mt-auto pt-6 holo-label holo-shadow text-white/45 text-center">
+                Missions regenerate on every new launch
+              </span>
+            </section>
           </div>
-        )}
-        {activeTab === 'MISSIONS' && (
-          <span className="shrink-0 pt-3 holo-label holo-shadow text-white/45 text-center">
-            Missions regenerate on every new launch
-          </span>
-        )}
+        </div>
       </div>
     </div>
   );

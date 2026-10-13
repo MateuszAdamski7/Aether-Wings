@@ -1,8 +1,9 @@
 import { useEffect, useRef, type RefObject } from 'react';
 import { useGameStore } from '../../store/useGameStore';
 import { getWorld, type World } from '../../game';
-import { Volume2, VolumeX, TriangleAlert, Activity, Zap, Pause } from 'lucide-react';
+import { TriangleAlert, Zap, Pause } from 'lucide-react';
 import CrystalIcon from './CrystalIcon';
+import VolumeControl from './VolumeControl';
 
 const HUD_UPDATE_INTERVAL_MS = 33; // ~30 fps is plenty for text readouts
 const BOOST_SEGMENTS = 10;
@@ -51,10 +52,6 @@ export default function GameHUD() {
 
   // Read discrete state hooks (only re-render on actual state change events)
   const crystalCount = useGameStore((state) => state.crystalCount);
-  const isMuted = useGameStore((state) => state.isMuted);
-  const toggleMute = useGameStore((state) => state.toggleMute);
-  const showPerfStats = useGameStore((state) => state.showPerfStats);
-  const togglePerfStats = useGameStore((state) => state.togglePerfStats);
   const collisionTriggered = useGameStore((state) => state.collisionTriggered);
 
   // Boost state subscriptions (discrete flags)
@@ -154,23 +151,7 @@ export default function GameHUD() {
 
           {/* Icon buttons stack vertically on narrow screens to leave room for the readouts */}
           <div className="flex flex-col sm:flex-row sm:-mt-1.5 pointer-events-auto">
-            {/* Performance Telemetry Toggle (F3) */}
-            <button
-              onClick={togglePerfStats}
-              className={`holo-icon-btn ${showPerfStats ? '!text-[#00f3ff]' : 'opacity-60'}`}
-              title={showPerfStats ? 'Hide Performance Telemetry (F3)' : 'Show Performance Telemetry (F3)'}
-              aria-label="Performance telemetry"
-            >
-              <Activity size={20} />
-            </button>
-
-            <button
-              onClick={toggleMute}
-              className="holo-icon-btn"
-              aria-label={isMuted ? 'Unmute' : 'Mute'}
-            >
-              {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
-            </button>
+            <VolumeControl />
 
             {/* Pause button (Esc / P) */}
             {!collisionTriggered && (
@@ -187,9 +168,18 @@ export default function GameHUD() {
         </div>
       </div>
 
-      {/* Boost Ready Alert */}
-      {boostReady && !boostActive && !collisionTriggered && (
-        <div className="absolute inset-x-0 top-1/4 flex justify-center items-center pointer-events-none">
+      {/* Center alerts share one column, so simultaneous ones stack instead of overlapping */}
+      <div className="absolute inset-x-4 top-1/4 flex flex-col items-center gap-8 text-center pointer-events-none z-20">
+        {/* Warning during collision */}
+        {collisionTriggered && (
+          <div className="flex justify-center items-center gap-3.5 text-[#ff2d6a]">
+            <TriangleAlert size={26} className="animate-pulse drop-shadow-[0_0_8px_#ff2d6a]" />
+            <span className="display-font font-black text-xl sm:text-3xl tracking-[0.3em] holo-glow-magenta">COLLISION</span>
+          </div>
+        )}
+
+        {/* Boost Ready Alert */}
+        {boostReady && !boostActive && !collisionTriggered && (
           <button
             type="button"
             onClick={() => {
@@ -207,48 +197,40 @@ export default function GameHUD() {
             </span>
             <span className="holo-label holo-shadow text-white">Tap or press Space</span>
           </button>
-        </div>
-      )}
+        )}
 
-      {/* Active Boost Timer */}
-      {boostActive && !collisionTriggered && (
-        <div className="absolute inset-x-0 top-1/4 flex flex-col items-center gap-3 pointer-events-none">
-          <span className="display-font font-black text-xl sm:text-3xl tracking-[0.15em] sm:tracking-[0.3em] text-[#ffaa00] holo-glow-orange">
-            HYPERBOOST ACTIVE
-          </span>
-          <div className="holo-track w-[320px] max-w-[70vw]">
-            <div
-              ref={boostBarRef}
-              className="h-full w-full origin-left bg-gradient-to-r from-[#ff6a00] to-[#ffe600] shadow-[0_0_10px_#ffaa00] transition-transform duration-75"
-              style={{ transform: readouts.boostFill(world) }}
-            />
+        {/* Active Boost Timer */}
+        {boostActive && !collisionTriggered && (
+          <div className="flex flex-col items-center gap-3">
+            <span className="display-font font-black text-xl sm:text-3xl tracking-[0.15em] sm:tracking-[0.3em] text-[#ffaa00] holo-glow-orange">
+              HYPERBOOST ACTIVE
+            </span>
+            <div className="holo-track w-[320px] max-w-[70vw]">
+              <div
+                ref={boostBarRef}
+                className="h-full w-full origin-left bg-gradient-to-r from-[#ff6a00] to-[#ffe600] shadow-[0_0_10px_#ffaa00] transition-transform duration-75"
+                style={{ transform: readouts.boostFill(world) }}
+              />
+            </div>
+            <span ref={boostTimeRef} className="holo-num holo-shadow text-xs tracking-[0.2em] text-[#ffe9a8]">
+              {readouts.boostTime(world)}
+            </span>
           </div>
-          <span ref={boostTimeRef} className="holo-num holo-shadow text-xs tracking-[0.2em] text-[#ffe9a8]">
-            {readouts.boostTime(world)}
-          </span>
-        </div>
-      )}
+        )}
 
-      {/* Warning during collision */}
-      {collisionTriggered && (
-        <div className="absolute inset-x-0 top-1/3 flex justify-center items-center gap-3.5 text-[#ff2d6a] pointer-events-none">
-          <TriangleAlert size={26} className="animate-pulse drop-shadow-[0_0_8px_#ff2d6a]" />
-          <span className="display-font font-black text-xl sm:text-3xl tracking-[0.3em] holo-glow-magenta">COLLISION</span>
-        </div>
-      )}
-
-      {/* Mission Accomplished Alert */}
-      {recentCompletedMission && (
-        <div className="absolute inset-x-4 top-1/4 flex flex-col items-center gap-2 text-center pointer-events-none z-20">
-          <span className="holo-label holo-glow-yellow text-[#ffe600] text-xs">Challenge complete</span>
-          <span className="display-font font-extrabold text-base sm:text-[22px] uppercase tracking-[0.12em] holo-shadow">
-            {recentCompletedMission.description}
-          </span>
-          <span className="holo-num holo-glow-magenta text-base text-[#ff4da6] flex items-center gap-1.5">
-            +{recentCompletedMission.reward} <CrystalIcon size={16} className="drop-shadow-[0_0_5px_#ff007f]" />
-          </span>
-        </div>
-      )}
+        {/* Mission Accomplished Alert */}
+        {recentCompletedMission && (
+          <div className="flex flex-col items-center gap-2">
+            <span className="holo-label holo-glow-yellow text-[#ffe600] text-xs">Challenge complete</span>
+            <span className="display-font font-extrabold text-base sm:text-[22px] uppercase tracking-[0.12em] holo-shadow">
+              {recentCompletedMission.description}
+            </span>
+            <span className="holo-num holo-glow-magenta text-base text-[#ff4da6] flex items-center gap-1.5">
+              +{recentCompletedMission.reward} <CrystalIcon size={16} className="drop-shadow-[0_0_5px_#ff007f]" />
+            </span>
+          </div>
+        )}
+      </div>
 
       {/* 2. BOTTOM ROW */}
       <div className="flex justify-between items-end w-full">

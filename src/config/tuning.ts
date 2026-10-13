@@ -66,3 +66,6 @@ export const CONTROL_CONFIG = {
   keyboardLerpSpeed: 12,
   boostLerpSpeed: 5.0,
 } as const;
+
+/** Master volume (music and sound effects) for a fresh save, and when unmuting with the slider at zero */
+export const DEFAULT_VOLUME = 0.3;
