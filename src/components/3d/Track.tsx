@@ -1,7 +1,8 @@
 import { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
-import { useGameStore } from '../../store/useGameStore';
+import { renderPlayer } from '../../game';
+import { sampleTrackColors } from '../../config/sectorPalettes';
 
 // Custom shader for the scrolling cyberpunk runway grid
 // Draws the roadbed, horizontal scrolling grid lines, and dashed lane dividers
@@ -63,6 +64,11 @@ const TrackShader = {
   `
 };
 
+// Module-level scratch Color instances (zero allocations in frame loop)
+const _targetTheme = new THREE.Color();
+const _targetLeft = new THREE.Color();
+const _targetRight = new THREE.Color();
+
 export default function Track() {
   const materialRef = useRef<THREE.ShaderMaterial>(null);
   const groupRef = useRef<THREE.Group>(null);
@@ -71,61 +77,23 @@ export default function Track() {
 
   // Update uniforms and position with player's Z coordinate to scroll the grid lines
   useFrame(() => {
-    const { playerZ } = useGameStore.getState();
+    const playerZ = renderPlayer.z;
 
-    // Continuous color definitions
-    const s1Theme = new THREE.Color('#9d00ff'); // Violet
-    const s1Left = new THREE.Color('#00f3ff');  // Cyan
-    const s1Right = new THREE.Color('#ff007f'); // Hot Pink
-
-    const s2Theme = new THREE.Color('#ff5500'); // Neon Orange
-    const s2Left = new THREE.Color('#39ff14');  // Acid Green
-    const s2Right = new THREE.Color('#ffe600'); // Solar Yellow
-
-    const s3Theme = new THREE.Color('#7a00ff'); // Indigo Purple
-    const s3Left = new THREE.Color('#ff0000');  // Crimson Red
-    const s3Right = new THREE.Color('#9d00ff'); // Nebula Violet
-
-    const targetTheme = new THREE.Color();
-    const targetLeft = new THREE.Color();
-    const targetRight = new THREE.Color();
-
-    if (playerZ < 1000) {
-      targetTheme.copy(s1Theme);
-      targetLeft.copy(s1Left);
-      targetRight.copy(s1Right);
-    } else if (playerZ < 1300) {
-      const t = (playerZ - 1000) / 300;
-      targetTheme.lerpColors(s1Theme, s2Theme, t);
-      targetLeft.lerpColors(s1Left, s2Left, t);
-      targetRight.lerpColors(s1Right, s2Right, t);
-    } else if (playerZ < 2600) {
-      targetTheme.copy(s2Theme);
-      targetLeft.copy(s2Left);
-      targetRight.copy(s2Right);
-    } else if (playerZ < 2900) {
-      const t = (playerZ - 2600) / 300;
-      targetTheme.lerpColors(s2Theme, s3Theme, t);
-      targetLeft.lerpColors(s2Left, s3Left, t);
-      targetRight.lerpColors(s2Right, s3Right, t);
-    } else {
-      targetTheme.copy(s3Theme);
-      targetLeft.copy(s3Left);
-      targetRight.copy(s3Right);
-    }
+    // Zero-allocation continuous color interpolation
+    sampleTrackColors(playerZ, _targetTheme, _targetLeft, _targetRight);
 
     if (materialRef.current) {
       materialRef.current.uniforms.uPlayerZ.value = playerZ;
       const currentThemeColor = materialRef.current.uniforms.uThemeColor.value as THREE.Color;
-      currentThemeColor.copy(targetTheme);
+      currentThemeColor.copy(_targetTheme);
     }
 
     if (leftRailMatRef.current) {
-      leftRailMatRef.current.color.copy(targetLeft);
+      leftRailMatRef.current.color.copy(_targetLeft);
     }
 
     if (rightRailMatRef.current) {
-      rightRailMatRef.current.color.copy(targetRight);
+      rightRailMatRef.current.color.copy(_targetRight);
     }
 
     if (groupRef.current) {

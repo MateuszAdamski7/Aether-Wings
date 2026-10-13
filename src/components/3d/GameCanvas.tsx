@@ -1,14 +1,23 @@
-import { useRef } from 'react';
+import { useEffect, useRef, Suspense, lazy, type ComponentType } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { EffectComposer, Bloom, Vignette } from '@react-three/postprocessing';
 import * as THREE from 'three';
 import { useGameStore } from '../../store/useGameStore';
+import { getWorld, renderPlayer } from '../../game';
+import { CAMERA_CONFIG } from '../../config/tuning';
 import Ship from './Ship';
 import Track from './Track';
 import Obstacles from './Obstacles';
 import Crystals from './Crystals';
 import PowerUps from './PowerUps';
 import Environment from './Environment';
+
+const _lookTarget = new THREE.Vector3();
+
+/** 0 for landscape/square screens, rising to 1 at CAMERA_CONFIG.portraitFullAspect */
+function getPortraitBlend(aspect: number): number {
+  const range = 1 - CAMERA_CONFIG.portraitFullAspect;
+  return THREE.MathUtils.clamp((1 - aspect) / range, 0, 1);
+}
 
 // 1. Chase Camera Controller
 // Follows the ship with a slight delay along X and Y to add weight and feel,
@@ -25,7 +34,12 @@ function ChaseCamera() {
     const dt = Math.min(delta, 0.1);
 
     // Read fast-changing values non-reactively
-    const { playerZ, shipX, boostActive, boostTimeRemaining, gameState } = useGameStore.getState();
+    const world = getWorld();
+    const { gameState } = useGameStore.getState();
+    const playerZ = renderPlayer.z;
+    const currentShipX = renderPlayer.x;
+    const boostTimeRemaining = world?.timers.boostRemaining ?? 0;
+    const boostActive = boostTimeRemaining > 0;
 
     // Initialize offset on the first frame to avoid a camera jump
     if (!isInitialized.current) {
@@ -35,7 +49,7 @@ function ChaseCamera() {
     }
 
     // Target positions
-    let targetX = shipX * 0.45; // Camera drifts slightly less than ship to keep center focus
+    let targetX = currentShipX * 0.45; // Camera drifts slightly less than ship to keep center focus
     let targetY = boostActive ? 2.1 : 1.9; // raise slightly during boost
     
     // Smoothly interpolate Z offset
@@ -52,7 +66,18 @@ function ChaseCamera() {
       offsetZRef.current = THREE.MathUtils.lerp(offsetZRef.current, 5.5, dt * 4.0);
     }
 
-    let targetZ = playerZ - offsetZRef.current;
+    // Portrait framing: wider FOV and a higher, farther camera keep all lanes visible
+    const portraitBlend = getPortraitBlend(state.size.width / state.size.height);
+    targetY += CAMERA_CONFIG.portraitExtraOffsetY * portraitBlend;
+    let targetZ = playerZ - offsetZRef.current - CAMERA_CONFIG.portraitExtraOffsetZ * portraitBlend;
+
+    if (camera instanceof THREE.PerspectiveCamera) {
+      const targetFov = THREE.MathUtils.lerp(CAMERA_CONFIG.baseFov, CAMERA_CONFIG.portraitFov, portraitBlend);
+      if (Math.abs(camera.fov - targetFov) > 0.01) {
+        camera.fov = targetFov;
+        camera.updateProjectionMatrix();
+      }
+    }
 
     // Apply intense shaking during collision (only while playing, not when game over is active)
     if (collisionTriggered && gameState === 'PLAYING') {
@@ -70,13 +95,9 @@ function ChaseCamera() {
     camera.position.y = THREE.MathUtils.lerp(camera.position.y, targetY, dt * 7);
     camera.position.z = targetZ;
 
-    // Camera looks slightly in front of the ship
-    const lookTarget = new THREE.Vector3(
-      shipX * 0.6,
-      0.15,
-      playerZ + 7.5
-    );
-    camera.lookAt(lookTarget);
+    // Camera looks slightly in front of the ship (zero allocation)
+    _lookTarget.set(currentShipX * 0.6, 0.15, playerZ + 7.5);
+    camera.lookAt(_lookTarget);
   });
 
   return null;
@@ -84,20 +105,37 @@ function ChaseCamera() {
 
 // 2. Game Loop Synchronizer
 // Drives the Zustand store tick in lockstep with the requestAnimationFrame loop
+// Runs before every other frame callback, so all render code reads the world after this frame's steps.
+// Otherwise callbacks run in mount order, and the camera (mounted first) and the ship (mounted on start)
+// would see different simulation times, making the ship jump back and forth relative to the camera.
+const SIMULATION_FRAME_PRIORITY = -1; // Negative: runs first without taking over rendering (only > 0 does)
+
 function GameLoopManager() {
   const tick = useGameStore((state) => state.tick);
 
   useFrame((_state, delta) => {
     const clampedDelta = Math.min(delta, 0.1);
     tick(clampedDelta);
-  });
+  }, SIMULATION_FRAME_PRIORITY);
 
   return null;
 }
 
+// 3. Post-processing is code-split: only HIGH quality downloads it.
+// If the chunk fails to load (network error, stale deploy), the game keeps running without bloom
+// instead of the error taking down the whole canvas.
+const PostEffects = lazy<ComponentType>(() =>
+  import('./PostEffects').catch((err: unknown) => {
+    console.warn('[GameCanvas] Post-processing unavailable, continuing without it:', err);
+    return { default: () => null };
+  })
+);
+
 export default function GameCanvas() {
+  const setSceneReady = useGameStore((state) => state.setSceneReady);
+  useEffect(() => setSceneReady(), [setSceneReady]);
+
   const gameState = useGameStore((state) => state.gameState);
-  const boostActive = useGameStore((state) => state.boostActive);
   const graphicsQuality = useGameStore((state) => state.graphicsQuality);
 
   return (
@@ -121,7 +159,11 @@ export default function GameCanvas() {
         <PowerUps />
 
         {/* Player Spaceship */}
-        {gameState !== 'START' && <Ship />}
+        {gameState !== 'START' && (
+          <Suspense fallback={null}>
+            <Ship />
+          </Suspense>
+        )}
 
         {/* Chase Camera controller */}
         <ChaseCamera />
@@ -131,23 +173,9 @@ export default function GameCanvas() {
 
         {/* Post-Processing Effects Composer */}
         {graphicsQuality === 'HIGH' && (
-          <EffectComposer>
-            {/* Neon Bloom Glow - extra intense during boost */}
-            <Bloom
-              intensity={boostActive ? 2.6 : 1.5}
-              luminanceThreshold={0.12}
-              luminanceSmoothing={0.8}
-              mipmapBlur={true}
-            />
-            
-            {/* Dark edge vignette for warp speed tunnel vision depth */}
-            <Vignette
-              eskil={false}
-              offset={0.25}
-              darkness={boostActive ? 1.45 : 1.1}
-              color={boostActive ? "#4d0099" : "#000000"}
-            />
-          </EffectComposer>
+          <Suspense fallback={null}>
+            <PostEffects />
+          </Suspense>
         )}
       </Canvas>
     </div>

@@ -1,31 +1,37 @@
 import type { StateCreator } from 'zustand';
 import type { GameStore, SettingsSlice } from './types';
 import { audioManager } from '../utils/audio';
+import { musicPlayer } from '../utils/musicPlayer';
+import { DEFAULT_VOLUME } from '../config/tuning';
 
 export const createSettingsSlice: StateCreator<GameStore, [], [], SettingsSlice> = (set, get) => {
-  // Load sound setting
-  const savedMute = localStorage.getItem('aether_muted');
-  const initialMute = savedMute ? savedMute === 'true' : false;
-
-  // Set initial audio manager mute state
-  audioManager.setMute(initialMute);
-
-  const savedGraphicsQuality = localStorage.getItem('aether_graphics_quality');
-  const initialGraphicsQuality = (savedGraphicsQuality === 'LOW') ? 'LOW' : 'HIGH';
+  const isCoarse = typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches;
+  const initialGraphicsQuality: 'HIGH' | 'LOW' = isCoarse ? 'LOW' : 'HIGH';
 
   return {
-    isMuted: initialMute,
+    isMuted: false,
+    volume: DEFAULT_VOLUME,
     graphicsQuality: initialGraphicsQuality,
 
     toggleMute: () => {
       const newMuted = !get().isMuted;
-      localStorage.setItem('aether_muted', String(newMuted));
       audioManager.setMute(newMuted);
+      musicPlayer.setMute(newMuted);
       set({ isMuted: newMuted });
+      // Unmuting with the slider at zero would still be silent
+      if (!newMuted && get().volume === 0) get().setVolume(DEFAULT_VOLUME);
+    },
+
+    setVolume: (volume) => {
+      const clamped = Math.min(1, Math.max(0, volume));
+      audioManager.setVolume(clamped);
+      musicPlayer.setVolume(clamped);
+      set({ volume: clamped });
+      // Raising the slider while muted means the player wants to hear it
+      if (clamped > 0 && get().isMuted) get().toggleMute();
     },
 
     setGraphicsQuality: (quality) => {
-      localStorage.setItem('aether_graphics_quality', quality);
       set({ graphicsQuality: quality });
     },
   };

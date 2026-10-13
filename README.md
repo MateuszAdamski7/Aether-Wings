@@ -1,10 +1,11 @@
 # Aether Wings
 
+![Aether Wings Hero Banner](./public/hero.png)
 
 ## **[https://aether-wings.vercel.app/](https://aether-wings.vercel.app/)**
 
 
-**Aether Wings** is a retro-futuristic 3D arcade infinite runner. Players pilot a customizable spaceship down a three-lane cyberpunk runway, dodging sector-specific obstacles, picking up power-ups (Shields, Magnets, and Slow-Mo), and collecting crystals. Accumulating crystals charges a Hyperboost gauge, allowing players to activate an invulnerability state and trigger sonic blasts that shatter hazards. Outside the run, players spend collected crystals in the Garage to unlock ship skins with unique passives, purchase tech tree upgrades, and track active gameplay challenges.
+**Aether Wings** is a retro-futuristic 3D arcade infinite runner. Players pilot a customizable spaceship down a three-lane cyberpunk runway, dodging sector-specific obstacles, picking up power-ups (Shields and Magnets), and collecting crystals. Accumulating crystals charges a Hyperboost gauge, allowing players to activate an invulnerability state and trigger sonic blasts that shatter hazards. Outside the run, players spend collected crystals in the Garage to unlock ship skins with unique passives, purchase tech tree upgrades, and track active gameplay challenges.
 
 ---
 
@@ -48,7 +49,7 @@ src/
     │   ├── Track.tsx       # Infinite scrolling grid roadway shader & neon rails
     │   ├── Crystals.tsx    # Spawning crystal points & magnetic homing pull path
     │   ├── Obstacles.tsx   # Hazardous neon walls, moving barriers
-    │   ├── PowerUps.tsx    # Magnet, Shield, and Slow-Mo collectible items
+    │   ├── PowerUps.tsx    # Magnet and Shield collectible items
     │   └── Environment.tsx # Sunset background sun shader, mountains, skyscraper assets
     └── ui/             # 2D overlay overlays (HUD, main menu, game over)
         ├── ErrorBoundary.tsx# Crash screen fallback for WebGL/3D canvas issues

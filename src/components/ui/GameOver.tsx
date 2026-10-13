@@ -1,8 +1,8 @@
 import { useEffect, useRef } from 'react';
 import { useGameStore } from '../../store/useGameStore';
 import { audioManager } from '../../utils/audio';
-import { RefreshCw, Trophy, Zap, Compass, Shield } from 'lucide-react';
-import confetti from 'canvas-confetti';
+import { musicPlayer } from '../../utils/musicPlayer';
+import CrystalIcon from './CrystalIcon';
 
 export default function GameOver() {
   const score = useGameStore((state) => state.score);
@@ -33,24 +33,35 @@ export default function GameOver() {
         return Math.random() * (max - min) + min;
       };
 
-      const interval = setInterval(() => {
-        const timeLeft = animationEnd - Date.now();
+      // canvas-confetti is only needed on a new record, so it is loaded on demand
+      let interval: ReturnType<typeof setInterval> | undefined;
+      let cancelled = false;
+      import('canvas-confetti')
+        .then(({ default: confetti }) => {
+          if (cancelled) return;
+          interval = setInterval(() => {
+            const timeLeft = animationEnd - Date.now();
 
-        if (timeLeft <= 0) {
-          return clearInterval(interval);
-        }
+            if (timeLeft <= 0) {
+              return clearInterval(interval);
+            }
 
-        const particleCount = 40 * (timeLeft / duration);
-        confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } });
-        confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } });
-      }, 250);
+            const particleCount = 40 * (timeLeft / duration);
+            confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } });
+            confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } });
+          }, 250);
+        })
+        .catch((err) => console.warn('[GameOver] Could not load confetti effect:', err));
 
-      return () => clearInterval(interval);
+      return () => {
+        cancelled = true;
+        clearInterval(interval);
+      };
     }
   }, [isNewHighScore]);
 
   const handleRestart = () => {
-    audioManager.startMusic();
+    musicPlayer.start();
     audioManager.playStartFx();
     startGame();
   };
@@ -62,143 +73,78 @@ export default function GameOver() {
   };
 
   return (
-    <div className="absolute inset-0 flex flex-col items-center justify-center p-6 z-10 select-none crt-flicker">
-      {/* Background Dim overlay */}
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm pointer-events-none" />
+    <div className="absolute inset-0 flex flex-col items-center justify-center hud-container z-10 select-none">
+      <div className="holo-scrim-dense" />
 
-      {/* Main Card */}
-      <div className="glass-panel w-full max-w-md p-8 flex flex-col items-center text-center border-glow-magenta relative z-20">
-        
-        {/* Flashing Danger Header */}
-        <h1 
-          className="display-font text-4xl md:text-5xl font-black mb-1 text-glow-magenta glitch text-red-500"
-          data-text="SYSTEM CRASH"
-          style={{ letterSpacing: '2px' }}
-        >
-          SYSTEM CRASH
-        </h1>
-        <p className="display-font text-xs uppercase tracking-widest text-[#ff007f] mb-6 text-glow-magenta">
-          Ship Hull Integrity Failed
-        </p>
+      {/* On short screens the results scroll while the actions stay pinned at the bottom */}
+      <div className="relative w-full max-w-[600px] max-h-full flex flex-col items-center text-center">
+        <div className="w-full min-h-0 overflow-y-auto flex flex-col items-center">
+          <h1 className="display-font text-3xl sm:text-5xl font-black m-0 text-[#ff2d6a] holo-glow-red tracking-[0.2em] sm:tracking-[0.26em] pl-[0.26em]">
+            SYSTEM CRASH
+          </h1>
+          <p className="holo-label holo-glow-magenta text-[#ff4da6] mt-2.5 mb-0">
+            Ship hull integrity failed
+          </p>
 
-        {/* High Score Celebration Banner */}
-        {isNewHighScore && (
-          <div className="w-full py-2 px-4 mb-6 rounded-md bg-[#ffe600]/10 border border-[#ffe600]/30 animate-pulse flex items-center justify-center gap-2 text-[#ffe600]">
-            <Trophy size={16} className="text-glow-yellow" />
-            <span className="display-font text-xs font-bold uppercase tracking-widest text-glow-yellow">
-              NEW RECORD ESTABLISHED!
+          {isNewHighScore && (
+            <span className="holo-label holo-glow-yellow text-xs text-[#ffe600] mt-6 animate-pulse">
+              ◆ New record established ◆
             </span>
-          </div>
-        )}
+          )}
 
-        {/* Stats Grid */}
-        <div className="w-full flex flex-col gap-3 mb-6 bg-black/30 p-4 rounded-xl border border-white/5 text-gray-300">
-          
-          {/* Final Score */}
-          <div className="flex justify-between items-center py-2 border-b border-white/5">
-            <div className="flex items-center gap-2 text-gray-400">
-              <Trophy size={16} />
-              <span className="text-xs uppercase tracking-wider">Final Score</span>
+          <span className="holo-label holo-shadow text-white/60 mt-5">Final score</span>
+          <span className="holo-num holo-glow-yellow text-5xl sm:text-[72px] text-[#ffe600] mt-2">
+            {score.toLocaleString()}
+          </span>
+
+          <div className="flex gap-8 sm:gap-20 mt-7">
+            <div className="flex flex-col items-center gap-2">
+              <span className="holo-label holo-shadow text-white/55">Distance</span>
+              <span className="holo-num holo-shadow text-lg sm:text-2xl">{Math.floor(distance).toLocaleString()}m</span>
             </div>
-            <span className="display-font font-bold text-glow-yellow text-[#ffe600] text-lg">
-              {score.toLocaleString()}
-            </span>
-          </div>
-
-          {/* Distance */}
-          <div className="flex justify-between items-center py-2 border-b border-white/5">
-            <div className="flex items-center gap-2 text-gray-400">
-              <Compass size={16} />
-              <span className="text-xs uppercase tracking-wider">Distance Covered</span>
+            <div className="flex flex-col items-center gap-2">
+              <span className="holo-label holo-shadow text-white/55">Salvaged</span>
+              <span className="holo-num holo-glow-magenta text-lg sm:text-2xl text-[#ff4da6] flex items-center gap-1.5">{crystalCount} <CrystalIcon size={18} className="drop-shadow-[0_0_5px_#ff007f]" /></span>
             </div>
-            <span className="display-font font-bold text-white text-md">
-              {Math.floor(distance)}m
-            </span>
-          </div>
-
-          {/* Crystals collected this run */}
-          <div className="flex justify-between items-center py-2 border-b border-white/5">
-            <div className="flex items-center gap-2 text-gray-400">
-              <Zap size={16} />
-              <span className="text-xs uppercase tracking-wider">Crystals Salvaged</span>
+            <div className="flex flex-col items-center gap-2">
+              <span className="holo-label holo-shadow text-white/55">Wallet</span>
+              <span className="holo-num holo-shadow text-lg sm:text-2xl text-[#ffe9a8] flex items-center gap-1.5">{lifetimeCrystals.toLocaleString()} <CrystalIcon size={18} /></span>
             </div>
-            <span className="display-font font-bold text-[#ff007f] text-glow-magenta text-md">
-              {crystalCount}
-            </span>
           </div>
 
-          {/* Lifetime Crystals wallet */}
-          <div className="flex justify-between items-center py-2">
-            <div className="flex items-center gap-2 text-gray-400">
-              <Shield size={16} />
-              <span className="text-xs uppercase tracking-wider">Wallet Balance</span>
-            </div>
-            <span className="display-font font-bold text-[#ffe600] text-glow-yellow text-md">
-              {lifetimeCrystals} 💎
-            </span>
-          </div>
-
-        </div>
-
-        {/* Mission Progress Panel */}
-        <div className="w-full flex flex-col gap-2.5 mb-6 text-left border-t border-white/10 pt-4">
-          <span className="display-font text-[10px] uppercase font-bold text-cyan-400 tracking-wider">Active Challenges Progress</span>
-          <div className="flex flex-col gap-2 w-full">
+          {/* Mission progress */}
+          <div className="w-full flex flex-col gap-3 mt-8 text-left">
+            <span className="holo-label holo-glow-cyan text-[#00f3ff]">Challenges</span>
             {activeMissions.map((m) => (
-              <div key={m.id} className="bg-black/40 border border-white/5 rounded-lg px-3 py-2 flex flex-col gap-1.5">
-                <div className="flex justify-between text-[10px] font-semibold text-gray-200">
-                  <span className="truncate max-w-[220px]">{m.description}</span>
-                  <span className={m.completed ? 'text-[#39ff14]' : 'text-gray-400'}>
-                    {m.completed ? 'COMPLETED' : `${m.current}/${m.target}`}
-                  </span>
-                </div>
-                <div className="w-full h-1 bg-black/50 rounded-full overflow-hidden border border-white/5">
-                  <div 
-                    className={`h-full ${m.completed ? 'bg-[#39ff14] shadow-[0_0_2px_#39ff14]' : 'bg-cyan-500'}`}
-                    style={{ width: `${(m.current / m.target) * 100}%` }}
+              <div key={m.id} className="grid grid-cols-[minmax(0,1fr)_72px_52px] sm:grid-cols-[minmax(0,1fr)_120px_90px] items-center gap-3 sm:gap-[18px]">
+                <span className="truncate text-sm sm:text-base font-semibold holo-shadow">{m.description}</span>
+                <div className="holo-track">
+                  <div
+                    className={`h-full ${m.completed ? 'bg-[#3dffa8] shadow-[0_0_6px_#3dffa8]' : 'bg-[#00f3ff] shadow-[0_0_6px_#00f3ff]'}`}
+                    style={{ width: `${Math.min(100, (m.current / m.target) * 100)}%` }}
                   />
                 </div>
+                <span className={`holo-label text-right ${m.completed ? 'text-[#3dffa8] holo-glow-green' : 'text-white/65 holo-shadow'}`}>
+                  {m.completed ? 'Done' : `${m.current}/${m.target}`}
+                </span>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Actions Group */}
-        <div className="flex flex-col gap-3 w-full">
-          {/* Restart Button */}
-          <button 
-            onClick={handleRestart}
-            className="btn-cyber btn-cyber-magenta px-8 py-3 w-full justify-center"
-          >
-            <RefreshCw size={16} className="mr-2 animate-spin" style={{ animationDuration: '4s' }} />
-            REBOOT SYSTEM
+        {/* Actions */}
+        <div className="flex flex-col items-center w-full shrink-0 mt-6">
+          <button onClick={handleRestart} className="holo-cta holo-glow-magenta text-[#ff4da6] hover:text-white">
+            ›› REBOOT SYSTEM ‹‹
           </button>
-
-          <div className="flex gap-3 w-full">
-            {/* Garage Button */}
-            <button 
-              onClick={() => handleBackToMenu('GARAGE')}
-              className="btn-cyber px-4 py-2.5 justify-center"
-              style={{ flex: 1, borderColor: 'var(--neon-cyan)', boxShadow: '0 0 8px rgba(0, 243, 255, 0.15)', fontSize: '11px', letterSpacing: '1px' }}
-            >
-              <Shield size={14} className="mr-1.5" />
+          <div className="flex gap-7 mt-1">
+            <button onClick={() => handleBackToMenu('GARAGE')} className="holo-text-btn holo-glow-cyan text-[#00f3ff]">
               GARAGE
             </button>
-
-            {/* Missions Button */}
-            <button 
-              onClick={() => handleBackToMenu('MISSIONS')}
-              className="btn-cyber px-4 py-2.5 justify-center"
-              style={{ flex: 1, borderColor: 'var(--neon-yellow)', boxShadow: '0 0 8px rgba(255, 230, 0, 0.15)', fontSize: '11px', letterSpacing: '1px' }}
-            >
-              <Trophy size={14} className="mr-1.5" />
+            <button onClick={() => handleBackToMenu('MISSIONS')} className="holo-text-btn holo-glow-yellow text-[#ffe600]">
               MISSIONS
             </button>
           </div>
-        </div>
-
-        <div className="text-[9px] uppercase tracking-widest text-gray-500 mt-4 display-font">
-          Select action to proceed
         </div>
       </div>
     </div>
